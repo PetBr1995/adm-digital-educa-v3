@@ -1,7 +1,7 @@
 import axios from "axios";
 import theme from "../../theme/theme";
 import { useState, useEffect, useMemo } from "react";
-import { Box, Typography, Grid, Paper, Divider } from "@mui/material";
+import { Box, Typography, Grid, Paper, Divider, Skeleton } from "@mui/material";
 import { School, Person, PersonOff, HowToReg } from "@mui/icons-material";
 
 import {
@@ -20,8 +20,10 @@ import {
 
 const UsersDashboard = () => {
   const [usuarios, setUsuarios] = useState({});
+  const [loading, setLoading] = useState(true);
 
   const getUsers = () => {
+    setLoading(true);
     axios
       .get("https://api.digitaleduca.com.vc/dashboard/usuarios", {
         headers: {
@@ -34,7 +36,8 @@ const UsersDashboard = () => {
       })
       .catch((error) => {
         console.log(error);
-      });
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -110,6 +113,87 @@ const UsersDashboard = () => {
     { label: "% Usuários Pagantes", value: `${toPct(kpis.pctPagantes)}%` },
     { label: "Taxa de Cancelamento", value: `${toPct(kpis.taxaCancelamento)}%` },
   ];
+
+  if (loading) {
+    return (
+      <Box sx={{ maxWidth: "1200px" }}>
+        <Grid
+          container
+          spacing={2}
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" },
+            gap: 2,
+            mb: 2,
+          }}
+        >
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <Grid item xs={12} sm={6} md={3} key={`kpi-${idx}`}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  borderBottom: `2px solid ${theme.palette.primary.light}`,
+                  py: 4,
+                  bgcolor: theme.palette.secondary.light,
+                }}
+              >
+                <Skeleton animation="wave" variant="rectangular" height={32} width={120} />
+                <Skeleton animation="wave" variant="text" sx={{ mt: 2 }} />
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+
+        <Grid
+          container
+          spacing={2}
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" },
+            gap: 2,
+            mb: 2,
+          }}
+        >
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <Paper
+              elevation={0}
+              key={`pct-${idx}`}
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                bgcolor: theme.palette.secondary.light,
+                borderBottom: `2px solid ${theme.palette.primary.light}`,
+              }}
+            >
+              <Skeleton animation="wave" variant="text" width="60%" />
+              <Skeleton animation="wave" variant="text" width="40%" />
+            </Paper>
+          ))}
+        </Grid>
+
+        <Grid
+          container
+          spacing={2}
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
+          <Paper elevation={0} sx={{ p: 2, borderRadius: 2, bgcolor: theme.palette.secondary.light }}>
+            <Skeleton animation="wave" variant="text" width="50%" />
+            <Skeleton animation="wave" variant="rectangular" height={320} sx={{ mt: 2 }} />
+          </Paper>
+          <Paper elevation={0} sx={{ p: 2, borderRadius: 2, bgcolor: theme.palette.secondary.light }}>
+            <Skeleton animation="wave" variant="text" width="50%" />
+            <Skeleton animation="wave" variant="rectangular" height={320} sx={{ mt: 2 }} />
+          </Paper>
+        </Grid>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{maxWidth:"1200px"}}>

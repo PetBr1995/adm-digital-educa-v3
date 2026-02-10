@@ -2,7 +2,7 @@
 import { AddRounded, StarBorder, TimerOutlined } from "@mui/icons-material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import theme from "../theme/theme";
-import { Box, Button, IconButton, Typography, alpha, Pagination } from "@mui/material";
+import { Box, Button, IconButton, Typography, alpha, Pagination, Skeleton, useMediaQuery } from "@mui/material";
 import SearchBarComponent from "../components/contentComponents/SearchBarComponente";
 import api from "../api/axiosInstance";
 import { useEffect, useMemo, useState } from "react";
@@ -15,6 +15,11 @@ const Conteudos = () => {
     // 🔹 paginação no front
     const [page, setPage] = useState(1);
     const [limit] = useState(10); // quantidade por página no front
+    const [loading, setLoading] = useState(true);
+    const isLg = useMediaQuery(theme.breakpoints.up("lg"));
+    const isMd = useMediaQuery(theme.breakpoints.up("md"));
+    const isSm = useMediaQuery(theme.breakpoints.up("sm"));
+    const skeletonCount = isLg ? 8 : isMd ? 4 : isSm ? 4 : 3;
 
     // 🔹 search no front
     const [search, setSearch] = useState("");
@@ -24,6 +29,7 @@ const Conteudos = () => {
 
     // ===== Busca TODOS os conteúdos (1x) =====
     const listAllContent = () => {
+        setLoading(true);
         api
             .get("/conteudos", {
                 params: {
@@ -39,7 +45,8 @@ const Conteudos = () => {
             })
             .catch(function (error) {
                 console.log(error);
-            });
+            })
+            .finally(() => setLoading(false));
     };
 
     useEffect(() => {
@@ -130,12 +137,21 @@ const Conteudos = () => {
                     }}
                 >
                     <Box>
-                        <Typography sx={{ fontWeight: 700, fontSize: { xs: 16, md: 18 } }}>
-                            Conteúdos — ({totalFiltrado}) resultados
-                        </Typography>
-                        <Typography sx={{ color: "text.secondary", fontSize: { xs: 13, md: 14 } }}>
-                            Total no sistema: {totalGeral}
-                        </Typography>
+                        {loading ? (
+                            <>
+                                <Skeleton animation="wave" variant="text" width={220} height={26} />
+                                <Skeleton animation="wave" variant="text" width={140} height={20} />
+                            </>
+                        ) : (
+                            <>
+                                <Typography sx={{ fontWeight: 700, fontSize: { xs: 16, md: 18 } }}>
+                                    Conteúdos — ({totalFiltrado}) resultados
+                                </Typography>
+                                <Typography sx={{ color: "text.secondary", fontSize: { xs: 13, md: 14 } }}>
+                                    Total no sistema: {totalGeral}
+                                </Typography>
+                            </>
+                        )}
                     </Box>
 
                     {/* Search */}
@@ -183,7 +199,37 @@ const Conteudos = () => {
                         },
                     }}
                 >
-                    {conteudosPaginados.map((conteudo) => {
+                    {loading &&
+                        Array.from({ length: skeletonCount }).map((_, idx) => (
+                            <Box
+                                key={`sk-${idx}`}
+                                sx={{
+                                    border: `1px solid ${theme.palette.divider}`,
+                                    borderRadius: "6px",
+                                    overflow: "hidden",
+                                    p: 2,
+                                    display: "grid",
+                                    gap: 2,
+                                }}
+                            >
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                                    <Skeleton animation="wave" variant="circular" width={34} height={34} />
+                                    <Box sx={{ flex: 1 }}>
+                                        <Skeleton animation="wave" variant="text" width="60%" />
+                                        <Skeleton animation="wave" variant="text" width="40%" />
+                                    </Box>
+                                </Box>
+                                <Skeleton animation="wave" variant="rectangular" height={140} />
+                                <Skeleton animation="wave" variant="text" width="80%" />
+                                <Box sx={{ display: "flex", gap: 1 }}>
+                                    <Skeleton animation="wave" variant="rounded" width={60} height={22} />
+                                    <Skeleton animation="wave" variant="rounded" width={60} height={22} />
+                                    <Skeleton animation="wave" variant="rounded" width={80} height={22} />
+                                </Box>
+                            </Box>
+                        ))}
+
+                    {!loading && conteudosPaginados.map((conteudo) => {
                         const instrutores =
                             conteudo.instrutores?.length > 0
                                 ? conteudo.instrutores.map((i) => i.instrutor.nome).join(", ")
@@ -374,33 +420,34 @@ const Conteudos = () => {
                     })}
                 </Box>
 
-                {/* Pagination (front) */}
-                <Box sx={{ borderTop: `1px solid ${theme.palette.divider}`, p: 2, display: "flex", justifyContent: "end", alignItems: "center" }}>
-                    <Pagination
-                        count={totalPages}
-                        page={page}
-                        onChange={(event, value) => setPage(value)}
-                        color="primary"
-                        shape="rounded"
-                        sx={{
-                            "& .MuiPaginationItem-root": {
-                                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                                color: "#ffffff",
-                            },
-                            "& .Mui-selected": {
-                                backgroundColor: theme.palette.primary.main,
-                                color: "#fff",
-                                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                            },
-                            "& .MuiPaginationItem-root:hover": {
-                                backgroundColor: alpha(theme.palette.primary.dark, 0.3),
-                            },
-                            "& .MuiPaginationItem-ellipsis": {
-                                border: "none",
-                            },
-                        }}
-                    />
-                </Box>
+                {!loading && (
+                    <Box sx={{ borderTop: `1px solid ${theme.palette.divider}`, p: 2, display: "flex", justifyContent: "end", alignItems: "center" }}>
+                        <Pagination
+                            count={totalPages}
+                            page={page}
+                            onChange={(event, value) => setPage(value)}
+                            color="primary"
+                            shape="rounded"
+                            sx={{
+                                "& .MuiPaginationItem-root": {
+                                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                    color: "#ffffff",
+                                },
+                                "& .Mui-selected": {
+                                    backgroundColor: theme.palette.primary.main,
+                                    color: "#fff",
+                                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                },
+                                "& .MuiPaginationItem-root:hover": {
+                                    backgroundColor: alpha(theme.palette.primary.dark, 0.3),
+                                },
+                                "& .MuiPaginationItem-ellipsis": {
+                                    border: "none",
+                                },
+                            }}
+                        />
+                    </Box>
+                )}
             </Box>
         </>
     );

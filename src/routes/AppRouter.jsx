@@ -7,6 +7,7 @@ import ProtectedAdminRoute from "../auth/ProtectedRouter";
 import Home from "../layout/Home";
 import Conteudos from "../pages/Conteudos";
 import CadastrarConteudo from "../pages/CadastrarConteudo";
+import Instrutores from "../pages/Instrutores";
 
 export default function AppRouter() {
   return (
@@ -28,6 +29,7 @@ export default function AppRouter() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="conteudos" element={<Conteudos />} />
           <Route path="cadastrarconteudo" element={<CadastrarConteudo />} />
+          <Route path="instrutores" element={<Instrutores/>}/>
           {/* aqui você adiciona /cursos, /instrutores, etc */}
         </Route>
 

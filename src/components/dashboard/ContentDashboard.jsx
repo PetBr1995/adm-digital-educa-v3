@@ -1,12 +1,14 @@
-import { alpha, Box, Typography } from "@mui/material";
+import { alpha, Box, Typography, Skeleton } from "@mui/material";
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import theme from "../../theme/theme";
 
 const ContentDashboard = () => {
     const [conteudos, setConteudos] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        setLoading(true);
         axios
             .get("https://api.digitaleduca.com.vc/dashboard/videos", {
                 headers: {
@@ -15,7 +17,8 @@ const ContentDashboard = () => {
                 },
             })
             .then((response) => setConteudos(response.data))
-            .catch(console.log);
+            .catch(console.log)
+            .finally(() => setLoading(false));
     }, []);
 
     const cards = useMemo(
@@ -44,6 +47,45 @@ const ContentDashboard = () => {
             </Typography>
         </Box>
     );
+
+    if (loading || !conteudos) {
+        return (
+            <Box
+                sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "1fr 1fr 1fr 1fr" },
+                    gap: 2,
+                    width: "100%",
+                    mt: 2,
+                    maxWidth: "1200px"
+                }}
+            >
+                {Array.from({ length: 4 }).map((_, idx) => (
+                    <Box
+                        key={`sk-c-${idx}`}
+                        sx={{
+                            p: 2,
+                            borderRadius: "8px",
+                            borderBottom: `3px solid ${theme.palette.primary.light}`,
+                            background: theme.palette.secondary.light,
+                            boxShadow: `0 10px 30px ${alpha(theme.palette.common.black, 0.06)}`,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 1.5,
+                            minHeight: 170,
+                        }}
+                    >
+                        <Skeleton animation="wave" variant="text" width="40%" />
+                        <Skeleton animation="wave" variant="text" width="80%" height={28} />
+                        <Box sx={{ mt: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+                            <Skeleton animation="wave" variant="text" width="60%" />
+                            <Skeleton animation="wave" variant="text" width="60%" />
+                        </Box>
+                    </Box>
+                ))}
+            </Box>
+        );
+    }
 
     return (
         <Box

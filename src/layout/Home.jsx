@@ -27,7 +27,7 @@ import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import MenuIcon from "@mui/icons-material/Menu";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { DonutLarge, VideoLibrary } from "@mui/icons-material";
+import { CoPresent, DonutLarge, VideoLibrary } from "@mui/icons-material";
 
 import { useAuth } from "../auth/AuthContext";
 
@@ -140,6 +140,7 @@ export default function Home() {
   const menuItems = [
     { label: "Dashboard", icon: <DonutLarge />, path: "/dashboard" },
     { label: "Conteúdos", icon: <VideoLibrary />, path: "/conteudos" },
+    { label: "Instrutores", icon: <CoPresent />, path: "/instrutores" },
     // adicione mais páginas aqui depois
   ];
 
