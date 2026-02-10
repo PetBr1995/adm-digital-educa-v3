@@ -159,8 +159,15 @@ import {
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>
-  
-            <TableBody sx={{ bgcolor: theme.palette.secondary.light }}>
+
+            <TableBody
+              sx={{
+                bgcolor: theme.palette.secondary.light,
+                "& .MuiTableCell-root": {
+                  borderBottom: `1px solid ${theme.palette.divider}`,
+                },
+              }}
+            >
               {loading &&
                 Array.from({ length: skeletonCount }).map((_, idx) => (
                   <TableRow key={`sk-${idx}`}>
@@ -176,24 +183,26 @@ import {
               {!loading &&
                 instrutoresPaginados.map((instrutor) => (
                   <TableRow key={instrutor.id ?? instrutor.email} hover>
-                    <TableCell sx={{ display: "flex", justifyContent: "start", alignItems: "center", gap: 2 }}>
-                      <Typography
-                        sx={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: "50%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontWeight: 700,
-                          bgcolor: "error.main",
-                          color: "common.white",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {(instrutor.nome || "?").trim().charAt(0).toUpperCase()}
-                      </Typography>
-                      {instrutor.nome}
+                    <TableCell>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Typography
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: "50%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 700,
+                            bgcolor: "error.main",
+                            color: "common.white",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {(instrutor.nome || "?").trim().charAt(0).toUpperCase()}
+                        </Typography>
+                        {instrutor.nome}
+                      </Box>
                     </TableCell>
                     <TableCell align="right">
                       <IconButton size="small" sx={{ color: "text.secondary" }}>
