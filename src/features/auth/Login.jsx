@@ -109,7 +109,7 @@ const Login = () => {
         px: 2,
         position: "relative",
         overflow: "hidden",
-        background: "radial-gradient(circle at top, #0f172a, #020617)",
+        background: `radial-gradient(circle at top, ${theme.palette.secondary.light}, ${theme.palette.secondary.dark})`,
       }}
     >
       <Fade in timeout={800}>
@@ -125,8 +125,6 @@ const Login = () => {
             flexDirection: "column",
             gap: 3,
             background: theme.palette.secondary.dark,
-            backdropFilter: "blur(10px)",
-            boxShadow: `0 0 40px ${alpha("#12457E", 1)}`,
             position: "relative",
             zIndex: 1,
             overflow: "hidden",
@@ -139,8 +137,7 @@ const Login = () => {
                 sx={{
                   position: "absolute",
                   inset: 0,
-                  bgcolor: alpha("#020617", 0.95),
-                  backdropFilter: "blur(4px)",
+                  bgcolor: alpha("#020617", 1),
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
