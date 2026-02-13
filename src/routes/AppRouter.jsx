@@ -8,6 +8,7 @@ import Home from "../layout/Home";
 import Conteudos from "../pages/Conteudos";
 import CadastrarConteudo from "../pages/CadastrarConteudo";
 import Instrutores from "../pages/Instrutores";
+import CadastrarInstrutor from "../components/CadastrarInstrutor";
 
 export default function AppRouter() {
   return (
@@ -30,6 +31,7 @@ export default function AppRouter() {
           <Route path="conteudos" element={<Conteudos />} />
           <Route path="cadastrarconteudo" element={<CadastrarConteudo />} />
           <Route path="instrutores" element={<Instrutores/>}/>
+          <Route path="cadastrarinstrutor" element={<CadastrarInstrutor/>}/>
           {/* aqui você adiciona /cursos, /instrutores, etc */}
         </Route>
 
