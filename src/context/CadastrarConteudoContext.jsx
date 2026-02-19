@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import useConteudoDraft from "../hooks/useConteudoDraft";
 import useConteudoLists from "../hooks/useConteudoLists";
 import useVimeoVideoUpload from "../hooks/useVimeoVideoUpload";
@@ -24,7 +24,41 @@ const DEFAULT_FORM_DATA = {
 
 const CadastrarConteudoContext = createContext(null);
 
-export const CadastrarConteudoProvider = ({ api, navigate, children }) => {
+const toLocalDateTimeInput = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const mi = pad(d.getMinutes());
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+};
+
+const normalizeMultiIds = (items, nestedKey) => {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((item) => {
+      if (nestedKey && item?.[nestedKey]) {
+        return String(item[nestedKey]?._id ?? item[nestedKey]?.id ?? "");
+      }
+      return String(item?._id ?? item?.id ?? "");
+    })
+    .filter(Boolean);
+};
+
+export const CadastrarConteudoProvider = ({
+  api,
+  navigate,
+  children,
+  mode = "create",
+  conteudoId = null,
+  storageKey = STORAGE_KEY,
+  initialConteudoData = null,
+}) => {
+  const isEditMode = mode === "edit";
   const {
     formData,
     setFormData,
@@ -37,11 +71,13 @@ export const CadastrarConteudoProvider = ({ api, navigate, children }) => {
     videosLivres,
     setVideosLivres,
     resetDraftData,
-  } = useConteudoDraft(STORAGE_KEY, DEFAULT_FORM_DATA);
+  } = useConteudoDraft(storageKey, DEFAULT_FORM_DATA);
 
   const { categorias, subcategorias, instrutores, tags } = useConteudoLists(api);
 
   const [showFormModulo, setShowFormModulo] = useState(false);
+  const [loadingInitialData, setLoadingInitialData] = useState(isEditMode);
+  const [loadError, setLoadError] = useState("");
 
   const [videoFile, setVideoFile] = useState(null);
   const [thumbnailDesktop, setThumbnailDesktop] = useState(null);
@@ -87,8 +123,107 @@ export const CadastrarConteudoProvider = ({ api, navigate, children }) => {
   const step2Valid = true;
 
   const step3Valid = useMemo(() => {
+    if (isEditMode) return true;
     return !!videoFile;
-  }, [videoFile]);
+  }, [isEditMode, videoFile]);
+
+  const hydrateConteudoData = useCallback((raw) => {
+    if (!raw) return;
+
+    const instrutorIds = normalizeMultiIds(raw.instrutores, "instrutor");
+    const tagIds = normalizeMultiIds(raw.tags, "tag");
+
+    const categoriaId = String(
+      raw.categoriaId ??
+        raw.categoria?._id ??
+        raw.categoria?.id ??
+        ""
+    );
+    const subcategoriaId = String(
+      raw.subcategoriaId ??
+        raw.subcategoria?._id ??
+        raw.subcategoria?.id ??
+        ""
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      titulo: String(raw.titulo ?? ""),
+      descricao: String(raw.descricao ?? ""),
+      aprendizagem: String(raw.aprendizagem ?? ""),
+      prerequisitos: String(raw.requisitos ?? raw.prerequisitos ?? ""),
+      tipoConteudo: String(raw.tipo ?? ""),
+      categoriaId,
+      subcategoriaId,
+      nivel: String(raw.level ?? raw.nivel ?? ""),
+      dataCriacao: toLocalDateTimeInput(raw.dataCriacao ?? raw.createdAt),
+      destaque: Boolean(raw.destaque),
+      gratuitoTipo: String(raw.gratuitoTipo ?? "NENHUM"),
+      gratuitoDataFim: String(raw.gratuitoAte ?? raw.gratuitoDataFim ?? ""),
+      instrutorIds,
+      tagIds,
+    }));
+
+    setModulos([]);
+    setVideosLivres([]);
+    setVideoFile(null);
+    setThumbnailDesktop(null);
+    setThumbnailMobile(null);
+    setThumbnailDestaque(null);
+    setStep(1);
+  }, [setFormData, setModulos, setStep, setVideosLivres]);
+
+  useEffect(() => {
+    if (!isEditMode) return;
+
+    let mounted = true;
+
+    const loadConteudo = async () => {
+      if (initialConteudoData) {
+        hydrateConteudoData(initialConteudoData);
+        if (mounted) setLoadingInitialData(false);
+        return;
+      }
+
+      if (!conteudoId) {
+        if (mounted) {
+          setLoadError("ID do conteúdo não informado.");
+          setLoadingInitialData(false);
+        }
+        return;
+      }
+
+      setLoadingInitialData(true);
+      setLoadError("");
+
+      try {
+        const response = await api.get(`/conteudos/${conteudoId}`);
+        const raw = response.data?.data ?? response.data?.conteudo ?? response.data ?? {};
+
+        if (!mounted) return;
+        hydrateConteudoData(raw);
+      } catch (err) {
+        console.error("Erro ao carregar conteúdo para edição:", err);
+        if (mounted) {
+          setLoadError("Não foi possível carregar os dados do conteúdo.");
+        }
+      } finally {
+        if (mounted) setLoadingInitialData(false);
+      }
+    };
+
+    loadConteudo();
+
+    return () => {
+      mounted = false;
+    };
+  }, [
+    api,
+    conteudoId,
+    hydrateConteudoData,
+    initialConteudoData,
+    isEditMode,
+  ]);
 
   const handleNext = () => {
     if (step === 1 && !step1Valid) return;
@@ -113,6 +248,8 @@ export const CadastrarConteudoProvider = ({ api, navigate, children }) => {
     setLoading,
   } = useConteudoSubmit({
     api,
+    mode,
+    conteudoId,
     formData,
     videoFile,
     thumbnailDesktop,
@@ -123,7 +260,7 @@ export const CadastrarConteudoProvider = ({ api, navigate, children }) => {
     navigate,
     setStep,
     uploadVideoToVimeo,
-    storageKey: STORAGE_KEY,
+    storageKey,
     step1Valid,
     step3Valid,
   });
@@ -173,6 +310,9 @@ export const CadastrarConteudoProvider = ({ api, navigate, children }) => {
     handleClearDraft,
     handleSubmitFinal,
     loading,
+    loadingInitialData,
+    loadError,
+    isEditMode,
     status,
     uploadProgress,
     extraUploadProgress,

@@ -3,6 +3,8 @@ import * as tus from "tus-js-client";
 
 export default function useConteudoSubmit({
   api,
+  mode = "create",
+  conteudoId = null,
   formData,
   videoFile,
   thumbnailDesktop,
@@ -37,9 +39,21 @@ export default function useConteudoSubmit({
     [tipoGratuito, formData.gratuitoDataFim]
   );
 
+  const getApiErrorMessage = (err, fallback) => {
+    const data = err?.response?.data;
+    if (typeof data === "string" && data.trim()) return data;
+    if (typeof data?.message === "string" && data.message.trim()) return data.message;
+    if (Array.isArray(data?.errors) && data.errors.length > 0) {
+      const first = data.errors[0];
+      if (typeof first === "string") return first;
+      if (typeof first?.message === "string") return first.message;
+    }
+    return fallback;
+  };
+
   const handleSubmitFinal = useCallback(async () => {
     if (!step1Valid) return;
-    if (!step3Valid) {
+    if (mode === "create" && !step3Valid) {
       setStatus("Selecione um vídeo introdutório!");
       return;
     }
@@ -51,7 +65,7 @@ export default function useConteudoSubmit({
     }
 
     setLoading(true);
-    setStatus("Criando conteúdo...");
+    setStatus(mode === "edit" ? "Atualizando conteúdo..." : "Criando conteúdo...");
     setUploadProgress(0);
 
     const conteudoData = {
@@ -65,12 +79,15 @@ export default function useConteudoSubmit({
       ...(formData.subcategoriaId
         ? { subcategoriaId: String(formData.subcategoriaId) }
         : {}),
-      dataCriacao: formData.dataCriacao,
       destaque: !!formData.destaque,
       gratuitoTipo: tipoGratuito,
       ...(gratuitoAte ? { gratuitoAte } : {}),
       ...(videoFile ? { fileSize: videoFile.size } : {}),
     };
+
+    if (mode !== "edit") {
+      conteudoData.dataCriacao = formData.dataCriacao;
+    }
 
     const fd = new FormData();
     Object.entries(conteudoData).forEach(([k, v]) => {
@@ -85,6 +102,60 @@ export default function useConteudoSubmit({
     if (thumbnailDesktop) fd.append("thumbnailDesktop", thumbnailDesktop);
     if (thumbnailMobile) fd.append("thumbnailMobile", thumbnailMobile);
     if (thumbnailDestaque) fd.append("thumbnailDestaque", thumbnailDestaque);
+
+    if (mode === "edit") {
+      if (!conteudoId) {
+        setStatus("ID do conteúdo não informado.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const hasMediaFiles =
+          !!videoFile ||
+          !!thumbnailDesktop ||
+          !!thumbnailMobile ||
+          !!thumbnailDestaque;
+
+        if (hasMediaFiles) {
+          if (videoFile) fd.append("video", videoFile);
+          await api.put(`/conteudos/${conteudoId}`, fd, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          });
+        } else {
+          const updateData = {
+            ...conteudoData,
+            instrutorIds: (formData.instrutorIds || []).map((id) => String(id)),
+            tags: (formData.tagIds || []).map((id) => String(id)),
+          };
+          delete updateData.fileSize;
+
+          await api.put(`/conteudos/${conteudoId}`, updateData, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        }
+
+        setStatus("Conteúdo atualizado com sucesso!");
+        localStorage.removeItem(storageKey);
+        setLoading(false);
+
+        if (typeof setStep === "function") {
+          setStep(4);
+        } else if (typeof navigate === "function") {
+          navigate("/conteudos");
+        }
+      } catch (err) {
+        console.error("Erro ao atualizar conteúdo:", err.response?.data || err);
+        setStatus(getApiErrorMessage(err, "Erro ao atualizar conteúdo."));
+        setLoading(false);
+      }
+      return;
+    }
 
     try {
       const res = await api.post("/conteudos/create", fd, {
@@ -273,6 +344,8 @@ export default function useConteudoSubmit({
     }
   }, [
     api,
+    mode,
+    conteudoId,
     formData,
     videoFile,
     thumbnailDesktop,

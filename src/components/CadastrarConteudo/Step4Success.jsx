@@ -4,7 +4,10 @@ import Lottie from "lottie-react";
 import successAnimation from "../../assets/success-tick.json";
 import theme from "../../theme/theme";
 
-const Step4Success = ({ onGoList }) => {
+const Step4Success = ({
+  onGoList,
+  message = "Conteúdo cadastrado com sucesso!",
+}) => {
   return (
     <Box
       sx={{
@@ -29,7 +32,7 @@ const Step4Success = ({ onGoList }) => {
           textAlign: "center",
         }}
       >
-        Conteúdo cadastrado com sucesso!
+        {message}
       </Typography>
 
       <Button

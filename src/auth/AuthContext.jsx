@@ -42,6 +42,11 @@ export function AuthProvider({ children }) {
         // se passou por tudo, considera autenticado
         setUser({
           role: decoded.role,
+          nome:
+            decoded.nome ??
+            decoded.name ??
+            decoded.username ??
+            null,
           email: decoded.email,
           // ... outros campos do token, se tiver
         });
@@ -69,6 +74,11 @@ export function AuthProvider({ children }) {
 
     setUser({
       role: decoded.role,
+      nome:
+        decoded.nome ??
+        decoded.name ??
+        decoded.username ??
+        null,
       email: decoded.email,
     });
   };

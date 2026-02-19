@@ -7,8 +7,12 @@ import ProtectedAdminRoute from "../auth/ProtectedRouter";
 import Home from "../layout/Home";
 import Conteudos from "../pages/Conteudos";
 import CadastrarConteudo from "../pages/CadastrarConteudo";
+import EditarConteudo from "../pages/EditarConteudo";
 import Instrutores from "../pages/Instrutores";
 import CadastrarInstrutor from "../components/CadastrarInstrutor";
+import EditarInstrutor from "../pages/EditarInstrutor";
+import Usuarios from "../pages/Usuarios";
+import CadastrarUsuario from "../pages/CadastrarUsuario";
 
 export default function AppRouter() {
   return (
@@ -30,8 +34,12 @@ export default function AppRouter() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="conteudos" element={<Conteudos />} />
           <Route path="cadastrarconteudo" element={<CadastrarConteudo />} />
+          <Route path="conteudos/editar/:id" element={<EditarConteudo />} />
           <Route path="instrutores" element={<Instrutores/>}/>
           <Route path="cadastrarinstrutor" element={<CadastrarInstrutor/>}/>
+          <Route path="instrutores/editar/:id" element={<EditarInstrutor/>}/>
+          <Route path="usuarios" element={<Usuarios/>}/>
+          <Route path="cadastrarusuario" element={<CadastrarUsuario/>}/>
           {/* aqui você adiciona /cursos, /instrutores, etc */}
         </Route>
 

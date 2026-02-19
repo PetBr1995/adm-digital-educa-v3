@@ -100,8 +100,13 @@ const Instrutores = () => {
 
   const handleEditInstrutor = () => {
     if (!menuInstrutor) return;
-    // TODO: ligar fluxo de edição (rota/modal)
-    console.log("Editar instrutor:", menuInstrutor);
+    const instrutorId = menuInstrutor.id ?? menuInstrutor._id;
+    if (!instrutorId) {
+      console.log("ID do instrutor não encontrado:", menuInstrutor);
+      handleCloseMenu();
+      return;
+    }
+    navigate(`/instrutores/editar/${instrutorId}`, { state: { instrutor: menuInstrutor } });
     handleCloseMenu();
   };
 
@@ -120,7 +125,7 @@ const Instrutores = () => {
   const navigate = useNavigate();
 
   return (
-    <Box sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 2 }}>
+    <Box sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 2,bgcolor:theme.palette.secondary.light  }}>
       {/* HEADER (mesmo grid do Conteudos) */}
       <Box
         sx={{
@@ -336,4 +341,3 @@ const Instrutores = () => {
 };
 
 export default Instrutores;
-

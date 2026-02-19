@@ -5,6 +5,7 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { alpha, styled, useTheme } from "@mui/material/styles";
 import {
   Box,
+  Button,
   CssBaseline,
   AppBar as MuiAppBar,
   Toolbar,
@@ -19,6 +20,13 @@ import {
   Menu,
   MenuItem,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Typography,
+  useMediaQuery,
 } from "@mui/material";
 
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -27,7 +35,7 @@ import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import MenuIcon from "@mui/icons-material/Menu";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { CoPresent, DonutLarge, VideoLibrary } from "@mui/icons-material";
+import { CoPresent, DonutLarge, GroupOutlined, VideoLibrary } from "@mui/icons-material";
 
 import { useAuth } from "../auth/AuthContext";
 
@@ -111,18 +119,38 @@ const Drawer = styled(MuiDrawer, {
 
 export default function Home() {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [open, setOpen] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const isCadastrarInstrutorPage = location.pathname === "/cadastrarinstrutor";
+  const isCadastrarUsuarioPage = location.pathname === "/cadastrarusuario";
+  const userEmail = user?.email || "email@nao-informado";
+  const userName =
+    user?.nome ||
+    user?.name ||
+    (userEmail.includes("@") ? userEmail.split("@")[0] : "Usuário");
+  const userInitial = (userName || "?").trim().charAt(0).toUpperCase();
 
   const handleDrawerOpen = () => setOpen(true);
   const handleDrawerClose = () => setOpen(false);
+  const handleMobileDrawerOpen = () => setMobileOpen(true);
+  const handleMobileDrawerClose = () => setMobileOpen(false);
 
   const handleLogout = () => {
     logout();
     navigate("/login", { replace: true });
+  };
+
+  const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
+  const handleRequestLogout = () => setOpenLogoutDialog(true);
+  const handleCloseLogoutDialog = () => setOpenLogoutDialog(false);
+  const handleConfirmLogout = () => {
+    setOpenLogoutDialog(false);
+    handleLogout();
   };
 
   // ====== MENU DO ACCOUNT (HEADER) ======
@@ -141,6 +169,7 @@ export default function Home() {
     { label: "Dashboard", icon: <DonutLarge />, path: "/dashboard" },
     { label: "Conteúdos", icon: <VideoLibrary />, path: "/conteudos" },
     { label: "Instrutores", icon: <CoPresent />, path: "/instrutores" },
+    { label: "Usuários", icon: <GroupOutlined />, path: "/usuarios" },
     // adicione mais páginas aqui depois
   ];
 
@@ -153,12 +182,13 @@ export default function Home() {
           ${theme.palette.secondary.light} 0%,
           ${theme.palette.secondary.main} 70%
         )`,
+        height: isCadastrarInstrutorPage || isCadastrarUsuarioPage ? "100vh" : "100%",
       }}
     >
       <CssBaseline />
 
       {/* HEADER */}
-      <AppBar position="fixed" open={open} sx={{ zIndex: 10 }}>
+      <AppBar position="fixed" open={!isMobile && open} sx={{ zIndex: 10 }}>
         <Toolbar
           sx={{
             borderBottom: `1px solid ${alpha(
@@ -168,6 +198,18 @@ export default function Home() {
             bgcolor: theme.palette.secondary.dark,
           }}
         >
+          {isMobile && (
+            <IconButton
+              color="inherit"
+              aria-label="abrir menu"
+              edge="start"
+              onClick={handleMobileDrawerOpen}
+              sx={{ mr: 1 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
+
           <Box
             sx={{
               display: "flex",
@@ -217,23 +259,40 @@ export default function Home() {
                 },
               }}
             >
-              <MenuItem
-                onClick={() => {
-                  handleCloseAccountMenu();
-                  // Se quiser, navegue para /perfil:
-                  // navigate("/perfil");
-                }}
-                sx={{ m: 1, borderRadius: 2 }}
-              >
-                Perfil
-              </MenuItem>
+              <Box sx={{ px: 2, py: 1.5, display: "flex", alignItems: "center", gap: 1.25 }}>
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    bgcolor: "error.main",
+                    color: "common.white",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  {userInitial}
+                </Box>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontSize: 14, fontWeight: 700, lineHeight: 1.2 }} noWrap>
+                    {userName}
+                  </Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }} noWrap>
+                    {userEmail}
+                  </Typography>
+                </Box>
+              </Box>
 
               <Divider />
 
               <MenuItem
                 onClick={() => {
                   handleCloseAccountMenu();
-                  handleLogout();
+                  handleRequestLogout();
                 }}
                 sx={{ color: "#e63946", fontWeight: 600, m: 1, borderRadius: 2 }}
               >
@@ -245,12 +304,120 @@ export default function Home() {
         </Toolbar>
       </AppBar>
 
-      {/* DRAWER LATERAL MINI */}
-      <Drawer
-        variant="permanent"
-        open={open}
-        sx={{ position: "relative", zIndex: 20 }}
-      >
+      {/* DRAWER MOBILE */}
+      {isMobile && (
+        <MuiDrawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={handleMobileDrawerClose}
+          ModalProps={{ keepMounted: true }}
+          elevation={0}
+          sx={{
+            display: { xs: "block", md: "none" },
+            "& .MuiDrawer-paper": {
+              width: drawerWidth,
+              boxSizing: "border-box",
+              bgcolor: theme.palette.secondary.dark,
+              borderRight: `1px solid ${theme.palette.divider}`,
+              boxShadow: "none",
+            },
+          }}
+        >
+          <DrawerHeader sx={{ display: "flex", justifyContent: "center" }}>
+            <IconButton
+              onClick={handleMobileDrawerClose}
+              disableRipple
+              disableFocusRipple
+              sx={{
+                borderRadius: "12px",
+                backgroundColor: "transparent !important",
+                "&:hover": { backgroundColor: "transparent !important" },
+                "&:active": { backgroundColor: "transparent !important" },
+                "&:focus": { backgroundColor: "transparent !important" },
+              }}
+            >
+              <img
+                src="/logo.png"
+                alt="logo"
+                style={{
+                  width: 170,
+                  height: "auto",
+                  objectFit: "contain",
+                }}
+              />
+            </IconButton>
+          </DrawerHeader>
+
+          <Divider sx={{ mx: 2 }} />
+
+          <List sx={{ mt: 3 }}>
+            {menuItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <ListItem key={item.label} disablePadding sx={{ display: "block" }}>
+                  <ListItemButton
+                    onClick={() => {
+                      navigate(item.path);
+                      handleMobileDrawerClose();
+                    }}
+                    selected={isActive}
+                    sx={{
+                      minHeight: 48,
+                      px: 2.5,
+                      mx: 1,
+                      borderRadius: 2,
+                      transition: "background-color .2s ease, transform .05s ease",
+                      color: theme.palette.secondary.contrastText,
+                      "& .MuiListItemIcon-root": {
+                        minWidth: 0,
+                        mr: 3,
+                        justifyContent: "center",
+                        color: alpha(theme.palette.secondary.contrastText, 0.8),
+                        transition: "color .2s ease",
+                      },
+                      "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.15) },
+                      "&:active": {
+                        bgcolor: alpha(theme.palette.primary.main, 0.25),
+                        transform: "scale(0.99)",
+                      },
+                      "&.Mui-selected": {
+                        bgcolor: alpha(theme.palette.primary.light, 1),
+                        color: theme.palette.secondary.dark,
+                        "&:hover": {
+                          bgcolor: alpha(theme.palette.primary.light, 1),
+                          color: theme.palette.secondary.dark,
+                        },
+                        "& .MuiListItemIcon-root": {
+                          color: theme.palette.secondary.dark,
+                        },
+                      },
+                    }}
+                  >
+                    <ListItemIcon>{item.icon}</ListItemIcon>
+                    <ListItemText
+                      primary={item.label}
+                      sx={{
+                        "& .MuiListItemText-primary": {
+                          fontWeight: isActive ? 700 : 500,
+                          fontSize: 16,
+                        },
+                      }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
+          </List>
+        </MuiDrawer>
+      )}
+
+      {/* DRAWER DESKTOP */}
+      {!isMobile && (
+        <Drawer
+          variant="permanent"
+          open={open}
+          sx={{ position: "relative", zIndex: 20, display: { xs: "none", md: "block" } }}
+        >
         <DrawerHeader sx={{ display: "flex", justifyContent: "center" }}>
           {/* Quando o drawer estiver ABERTO → logo grande */}
           {open && (
@@ -424,14 +591,17 @@ export default function Home() {
           </ListItem>
         </List>
                   */}
-      </Drawer>
+        </Drawer>
+      )}
 
       {/* CONTEÚDO PRINCIPAL */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: { xs: 1.25, sm: 2, md: 3 },
+          maxWidth: "100%",
+          overflowX: "hidden",
         }}
       >
         {/* empurra o conteúdo para baixo do AppBar */}
@@ -440,6 +610,42 @@ export default function Home() {
         {/* Aqui entram suas páginas internas */}
         <Outlet />
       </Box>
+
+      <Dialog
+        open={openLogoutDialog}
+        onClose={handleCloseLogoutDialog}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: theme.palette.secondary.light,
+            borderRadius: 2,
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Confirmar logout</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: alpha(theme.palette.common.white, 0.8) }}>
+            Deseja realmente sair da sua conta?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            variant="outlined"
+            onClick={handleCloseLogoutDialog}
+            sx={{ color: "#fff", borderColor: alpha(theme.palette.common.white, 0.25) }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleConfirmLogout}
+          >
+            Sair
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

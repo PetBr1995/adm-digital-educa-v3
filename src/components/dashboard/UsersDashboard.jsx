@@ -1,7 +1,7 @@
 import axios from "axios";
 import theme from "../../theme/theme";
 import { useState, useEffect, useMemo } from "react";
-import { Box, Typography, Grid, Paper, Divider, Skeleton } from "@mui/material";
+import { Box, Typography, Grid, Paper, Divider, Skeleton, alpha } from "@mui/material";
 import { School, Person, PersonOff, HowToReg } from "@mui/icons-material";
 
 import {

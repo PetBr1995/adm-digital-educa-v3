@@ -12,6 +12,7 @@ const CadastrarFooter = ({
   onNext,
   onCancel,
   onSubmit,
+  submitLabel = "Cadastrar",
 }) => {
   return (
     <Box
@@ -54,7 +55,7 @@ const CadastrarFooter = ({
           disabled={loading || !step3Valid}
           sx={{ bgcolor: theme.palette.primary.light, fontWeight: 600 }}
         >
-          Cadastrar
+          {submitLabel}
         </Button>
       )}
     </Box>

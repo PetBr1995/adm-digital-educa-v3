@@ -5,7 +5,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import SlideshowIcon from "@mui/icons-material/Slideshow";
 import theme from "../../theme/theme";
 
-const CadastrarHeader = ({ step }) => {
+const CadastrarHeader = ({ step, title = "Dados do novo conteúdo" }) => {
   return (
     <Box
       sx={{
@@ -18,7 +18,7 @@ const CadastrarHeader = ({ step }) => {
         justifyContent: "space-between",
       }}
     >
-      <Typography variant="h5">Dados do novo conteúdo</Typography>
+      <Typography variant="h5">{title}</Typography>
 
       <Box
         sx={{
