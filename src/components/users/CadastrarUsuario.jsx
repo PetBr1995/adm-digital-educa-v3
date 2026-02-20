@@ -1,4 +1,5 @@
-import { Box, Button, Dialog, DialogContent, Fade, MenuItem, TextField, Typography, alpha } from "@mui/material";
+import { Alert, Box, Button, Dialog, DialogContent, Fade, IconButton, InputAdornment, MenuItem, Snackbar, TextField, Typography, alpha } from "@mui/material";
+import { VisibilityOffOutlined, VisibilityOutlined } from "@mui/icons-material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Lottie from "lottie-react";
@@ -6,10 +7,15 @@ import successAnimation from "../../assets/success-tick.json";
 import api from "../../api/axiosInstance";
 import theme from "../../theme/theme";
 
-const CadastrarUsuario = () => {
+const CadastrarUsuario = ({ onSuccess }) => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+    const [errorAlert, setErrorAlert] = useState({
+        open: false,
+        message: "",
+    });
 
     const [formData, setFormData] = useState({
         nome: "",
@@ -38,10 +44,18 @@ const CadastrarUsuario = () => {
     return `(${ddd}) ${nono} ${parte1}-${parte2}`;
   };
 
-  const handlePhoneChange = (event) => {
+    const handlePhoneChange = (event) => {
     const masked = formatPhone(event.target.value);
     setFormData((prev) => ({ ...prev, celular: masked }));
   };
+
+    const handleClickShowPassword = () => {
+        setShowPassword((prev) => !prev);
+    };
+
+    const handleMouseDownPassword = (event) => {
+        event.preventDefault();
+    };
 
     const toIsoOrNull = (value) => {
         if (!value) return null;
@@ -71,6 +85,7 @@ const CadastrarUsuario = () => {
             });
 
             setSuccessDialogOpen(true);
+            if (onSuccess) onSuccess();
             setFormData({
                 nome: "",
                 email: "",
@@ -85,7 +100,22 @@ const CadastrarUsuario = () => {
                 navigate("/usuarios");
             }, 1300);
         } catch (error) {
-            console.log("Erro ao cadastrar usuário:", error?.response?.data || error);
+            const apiError = error?.response?.data;
+            const statusCode = error?.response?.status ?? apiError?.statusCode;
+            const apiMessage = apiError?.message;
+
+            let message = "Não foi possível cadastrar o usuário.";
+            if (statusCode === 409) {
+                message = Array.isArray(apiMessage) ? apiMessage[0] : apiMessage || "Já existe um usuário cadastrado com esse celular!";
+            } else if (apiMessage) {
+                message = Array.isArray(apiMessage) ? apiMessage[0] : apiMessage;
+            }
+
+            setErrorAlert({
+                open: true,
+                message,
+            });
+            console.log("Erro ao cadastrar usuário:", apiError || error);
         } finally {
             setLoading(false);
         }
@@ -112,10 +142,28 @@ const CadastrarUsuario = () => {
                     />
                     <TextField
                         fullWidth
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         placeholder="Senha..."
                         value={formData.senha}
                         onChange={updateField("senha")}
+                        InputProps={{
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        onClick={handleClickShowPassword}
+                                        onMouseDown={handleMouseDownPassword}
+                                        edge="end"
+                                        disabled={loading}
+                                    >
+                                        {showPassword ? (
+                                            <VisibilityOffOutlined sx={{ color: "#728CAA" }} />
+                                        ) : (
+                                            <VisibilityOutlined sx={{ color: "#728CAA" }} />
+                                        )}
+                                    </IconButton>
+                                </InputAdornment>
+                            ),
+                        }}
                         required
                     />
           <TextField
@@ -223,6 +271,22 @@ const CadastrarUsuario = () => {
                     </Fade>
                 </DialogContent>
             </Dialog>
+
+            <Snackbar
+                open={errorAlert.open}
+                autoHideDuration={5000}
+                onClose={() => setErrorAlert((prev) => ({ ...prev, open: false }))}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            >
+                <Alert
+                    onClose={() => setErrorAlert((prev) => ({ ...prev, open: false }))}
+                    severity="error"
+                    variant="filled"
+                    sx={{ width: "100%" }}
+                >
+                    {errorAlert.message}
+                </Alert>
+            </Snackbar>
         </>
     );
 };

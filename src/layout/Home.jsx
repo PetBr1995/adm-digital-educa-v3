@@ -35,7 +35,7 @@ import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import MenuIcon from "@mui/icons-material/Menu";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { CoPresent, DonutLarge, GroupOutlined, VideoLibrary } from "@mui/icons-material";
+import { AirplaneTicket, Category, CoPresent, DonutLarge, GroupOutlined, VideoLibrary } from "@mui/icons-material";
 
 import { useAuth } from "../auth/AuthContext";
 
@@ -128,6 +128,8 @@ export default function Home() {
   const { logout, user } = useAuth();
   const isCadastrarInstrutorPage = location.pathname === "/cadastrarinstrutor";
   const isCadastrarUsuarioPage = location.pathname === "/cadastrarusuario";
+  const isCadastrarPlanoPage = location.pathname === "/planos/cadastrar";
+  const isEditarPlanoPage = location.pathname.startsWith("/planos/editar/");
   const userEmail = user?.email || "email@nao-informado";
   const userName =
     user?.nome ||
@@ -170,6 +172,8 @@ export default function Home() {
     { label: "Conteúdos", icon: <VideoLibrary />, path: "/conteudos" },
     { label: "Instrutores", icon: <CoPresent />, path: "/instrutores" },
     { label: "Usuários", icon: <GroupOutlined />, path: "/usuarios" },
+    { label: "Planos", icon: <AirplaneTicket />, path: "/planos" },
+    { label: "Categorias", icon: <Category/>, path: "/categorias" },
     // adicione mais páginas aqui depois
   ];
 
@@ -182,7 +186,13 @@ export default function Home() {
           ${theme.palette.secondary.light} 0%,
           ${theme.palette.secondary.main} 70%
         )`,
-        height: isCadastrarInstrutorPage || isCadastrarUsuarioPage ? "100vh" : "100%",
+        minHeight:
+          isCadastrarInstrutorPage ||
+          isCadastrarUsuarioPage ||
+          isCadastrarPlanoPage ||
+          isEditarPlanoPage
+            ? "100vh"
+            : "100%",
       }}
     >
       <CssBaseline />

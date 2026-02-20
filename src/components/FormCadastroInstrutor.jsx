@@ -10,6 +10,7 @@ const FormCadastroInstrutor = ({
     mode = "create",
     instrutorId = null,
     initialData = null,
+    onSuccess,
 }) => {
     const isEdit = mode === "edit";
 
@@ -52,6 +53,7 @@ const FormCadastroInstrutor = ({
             }
 
             setSuccessDialogOpen(true);
+            if (onSuccess) onSuccess();
             if (!isEdit) {
                 setNome("");
                 setFormacao("");

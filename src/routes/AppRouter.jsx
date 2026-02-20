@@ -13,6 +13,10 @@ import CadastrarInstrutor from "../components/CadastrarInstrutor";
 import EditarInstrutor from "../pages/EditarInstrutor";
 import Usuarios from "../pages/Usuarios";
 import CadastrarUsuario from "../pages/CadastrarUsuario";
+import Planos from "../pages/Planos";
+import CadastrarPlano from "../pages/CadastrarPlano";
+import EditarPlano from "../pages/EditarPlano";
+import Categorias from "../pages/Categorias";
 
 export default function AppRouter() {
   return (
@@ -40,6 +44,10 @@ export default function AppRouter() {
           <Route path="instrutores/editar/:id" element={<EditarInstrutor/>}/>
           <Route path="usuarios" element={<Usuarios/>}/>
           <Route path="cadastrarusuario" element={<CadastrarUsuario/>}/>
+          <Route path="planos" element={<Planos/>} />
+          <Route path="planos/cadastrar" element={<CadastrarPlano/>} />
+          <Route path="planos/editar/:id" element={<EditarPlano/>} />
+          <Route path="categorias" element={<Categorias/>} />
           {/* aqui você adiciona /cursos, /instrutores, etc */}
         </Route>
 
