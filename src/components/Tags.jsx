@@ -1,44 +1,41 @@
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Snackbar, TextField, Typography } from "@mui/material"
-import theme from "../theme/theme"
-import api
-    from "../api/axiosInstance"
 import { useEffect, useState } from "react"
-import Subcategorias from "../components/Subcategorias"
-import Tags from "../components/Tags"
-import { Delete } from "@mui/icons-material";
-const Categorias = () => {
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Snackbar, TextField, Typography } from "@mui/material"
+import { Delete } from "@mui/icons-material"
+import api from "../api/axiosInstance"
+import theme from "../theme/theme"
 
-    const [categorias, setCategorias] = useState([])
+const Tags = () => {
+    const [tags, setTags] = useState([])
     const [nome, setNome] = useState("")
     const [loading, setLoading] = useState(false)
     const [deleting, setDeleting] = useState(false)
-    const [categoriaToDelete, setCategoriaToDelete] = useState(null)
+    const [tagToDelete, setTagToDelete] = useState(null)
     const [snackbar, setSnackbar] = useState({
         open: false,
         message: "",
         severity: "success",
     })
 
-    const listarCategorias = () => {
-        api.get("/categorias/list", {
+    const listarTags = () => {
+        api.get("/tags", {
             headers: {
                 Authorization: `Bearer ${localStorage.getItem("token")}`
             }
         }).then(function (response) {
-            setCategorias(response.data)
+            setTags(response.data || [])
         }).catch(function (error) {
             console.log(error)
         })
     }
 
-    const cadastrarCategoria = (event) => {
+    const cadastrarTag = (event) => {
         event.preventDefault()
         const nomeLimpo = nome.trim()
 
         if (!nomeLimpo) return
         setLoading(true)
 
-        api.post("/categorias/create", {
+        api.post("/tags", {
             nome: nomeLimpo
         }, {
             headers: {
@@ -46,17 +43,17 @@ const Categorias = () => {
             }
         }).then(function (response) {
             setNome("")
-            listarCategorias()
+            listarTags()
             setSnackbar({
                 open: true,
-                message: response?.data?.message || "Categoria cadastrada com sucesso!",
+                message: response?.data?.message || "Tag cadastrada com sucesso!",
                 severity: "success",
             })
         }).catch(function (error) {
             console.log(error)
             setSnackbar({
                 open: true,
-                message: error?.response?.data?.message || "Não foi possível cadastrar a categoria.",
+                message: error?.response?.data?.message || "Não foi possível cadastrar a tag.",
                 severity: "error",
             })
         }).finally(function () {
@@ -64,46 +61,46 @@ const Categorias = () => {
         })
     }
 
-    const handleOpenDeleteConfirm = (categoria) => {
-        setCategoriaToDelete(categoria)
+    const handleOpenDeleteConfirm = (tag) => {
+        setTagToDelete(tag)
     }
 
     const handleCloseDeleteConfirm = () => {
         if (deleting) return
-        setCategoriaToDelete(null)
+        setTagToDelete(null)
     }
 
-    const deletarCategoria = () => {
-        const id = categoriaToDelete?.id ?? categoriaToDelete?._id
+    const deletarTag = () => {
+        const id = tagToDelete?.id ?? tagToDelete?._id
         if (!id) {
             setSnackbar({
                 open: true,
-                message: "ID da categoria não encontrado.",
+                message: "ID da tag não encontrado.",
                 severity: "error",
             })
             return
         }
 
         setDeleting(true)
-        api.delete(`/categorias/${id}`, {
+        api.delete(`/tags/${id}`, {
             headers: {
                 Authorization: `Bearer ${localStorage.getItem("token")}`
             }
         }).then(function (response) {
-            setCategorias((prev) =>
-                prev.filter((categoria) => String(categoria.id ?? categoria._id) !== String(id))
+            setTags((prev) =>
+                prev.filter((tag) => String(tag.id ?? tag._id) !== String(id))
             )
             setSnackbar({
                 open: true,
-                message: response?.data?.message || "Categoria excluída com sucesso!",
+                message: response?.data?.message || "Tag excluída com sucesso!",
                 severity: "success",
             })
-            setCategoriaToDelete(null)
+            setTagToDelete(null)
         }).catch(function (error) {
             console.log(error)
             setSnackbar({
                 open: true,
-                message: error?.response?.data?.message || "Não foi possível excluir a categoria.",
+                message: error?.response?.data?.message || "Não foi possível excluir a tag.",
                 severity: "error",
             })
         }).finally(function () {
@@ -112,27 +109,32 @@ const Categorias = () => {
     }
 
     useEffect(() => {
-        listarCategorias();
+        listarTags()
     }, [])
+
+    const tagsExibidas = tags.filter((tag) => {
+        const nomeTag = String(tag?.nome ?? "").trim()
+        return nomeTag !== "" && !/^\d+$/.test(nomeTag)
+    })
 
     return (
         <>
-            <Box sx={{ maxWidth: "1200px", m: "auto", px: { xs: 1, sm: 0 }, border: `1px solid ${theme.palette.divider}`, bgcolor: theme.palette.secondary.light, borderRadius: "6px" }}>
+            <Box sx={{ maxWidth: "1200px", mt: 2, m: "auto", px: { xs: 1, sm: 0 }, border: `1px solid ${theme.palette.divider}`, bgcolor: theme.palette.secondary.light, borderRadius: "6px" }}>
                 <Box sx={{ p: 0 }}>
                     <Box>
                         <Box sx={{ borderBottom: `1px solid ${theme.palette.divider}`, mb: 2 }}>
                             <Box sx={{ p: 2 }}>
-                                <Typography variant="h6">Categorias - ({categorias.length}) categorias cadastrados</Typography>
-                                <Typography variant="body2">Gerencie todas as Categorias</Typography>
+                                <Typography variant="h6">Tags</Typography>
+                                <Typography variant="body2">Gerencie todas as Tags</Typography>
                             </Box>
                         </Box>
                         <Box
                             component="form"
-                            onSubmit={cadastrarCategoria}
+                            onSubmit={cadastrarTag}
                             sx={{ px: 2, pb: 1, display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}
                         >
                             <TextField
-                                label="Nome da categoria"
+                                label="Nome da tag"
                                 placeholder="Digite o nome..."
                                 value={nome}
                                 onChange={(event) => setNome(event.target.value)}
@@ -150,25 +152,37 @@ const Categorias = () => {
                             </Button>
                         </Box>
                         <Box sx={{ p: 2, display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)" }, gap: 2 }}>
-                            {categorias.map((categoria) => (
-                                <Box key={categoria.id || categoria._id || categoria.nome} sx={{ bgcolor: theme.palette.secondary.light, position: "relative", border: `1px solid ${theme.palette.divider}`, px: 2, py: 1, borderRadius: "6px" }}>
-                                    <Typography sx={{ position: "relative" }}>{categoria.nome}</Typography>
+                            {tagsExibidas.map((tag) => (
+                                <Box
+                                    key={tag.id || tag._id || tag.nome}
+                                    sx={{ bgcolor: theme.palette.secondary.light, position: "relative", border: `1px solid ${theme.palette.divider}`, px: 2, py: 1, borderRadius: "6px" }}
+                                >
+                                    <Typography sx={{ position: "relative" }}>{tag.nome}</Typography>
                                     <IconButton
-                                        onClick={() => handleOpenDeleteConfirm(categoria)}
-                                        sx={{ '&:hover':{bgcolor:theme.palette.primary.dark},bgcolor: theme.palette.primary.light, position: "absolute", width: "25px", height: "25px", top: 8, right: 5, border: `1px solid ${theme.palette.divider}` }}
+                                        onClick={() => handleOpenDeleteConfirm(tag)}
+                                        sx={{ '&:hover': { bgcolor: theme.palette.primary.dark }, bgcolor: theme.palette.primary.light, position: "absolute", width: "25px", height: "25px", top: 8, right: 5, border: `1px solid ${theme.palette.divider}` }}
                                     >
-                                        <Delete sx={{
-                                            '&:hover': {
-                                                color: 'white',
-                                            }, width: "20px", height: "20px", color: theme.palette.secondary.dark
-                                        }} />
+                                        <Delete
+                                            sx={{
+                                                '&:hover': { color: "white" },
+                                                width: "20px",
+                                                height: "20px",
+                                                color: theme.palette.secondary.dark
+                                            }}
+                                        />
                                     </IconButton>
                                 </Box>
                             ))}
+                            {tagsExibidas.length === 0 && (
+                                <Typography variant="body2" sx={{ opacity: 0.75 }}>
+                                    Nenhuma tag de texto encontrada.
+                                </Typography>
+                            )}
                         </Box>
                     </Box>
                 </Box>
             </Box>
+
             <Snackbar
                 open={snackbar.open}
                 autoHideDuration={4000}
@@ -184,8 +198,9 @@ const Categorias = () => {
                     {snackbar.message}
                 </Alert>
             </Snackbar>
+
             <Dialog
-                open={Boolean(categoriaToDelete)}
+                open={Boolean(tagToDelete)}
                 onClose={handleCloseDeleteConfirm}
                 fullWidth
                 maxWidth="xs"
@@ -193,7 +208,7 @@ const Categorias = () => {
                 <DialogTitle>Confirmar exclusão</DialogTitle>
                 <DialogContent>
                     <Typography variant="body2">
-                        Tem certeza que deseja excluir a categoria <strong>{categoriaToDelete?.nome || "selecionada"}</strong>?
+                        Tem certeza que deseja excluir a tag <strong>{tagToDelete?.nome || "selecionada"}</strong>?
                     </Typography>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -206,7 +221,7 @@ const Categorias = () => {
                         Cancelar
                     </Button>
                     <Button
-                        onClick={deletarCategoria}
+                        onClick={deletarTag}
                         color="error"
                         variant="contained"
                         disabled={deleting}
@@ -216,14 +231,8 @@ const Categorias = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
-            <Box sx={{ mt: 2 }}>
-                <Subcategorias />
-            </Box>
-            <Box sx={{ mt: 2 }}>
-                <Tags />
-            </Box>
         </>
     )
 }
 
-export default Categorias
+export default Tags
