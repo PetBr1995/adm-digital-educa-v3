@@ -27,7 +27,6 @@ import {
   alpha,
   useMediaQuery,
 } from "@mui/material";
-import SettingsIcon from '@mui/icons-material/Settings';
 import SearchBarComponent from "../components/contentComponents/SearchBarComponente";
 import api from "../api/axiosInstance";
 import { useEffect, useMemo, useState } from "react";
@@ -552,10 +551,6 @@ const Conteudos = () => {
             },
           }}
         >
-          <MenuItem onClick={() => navigate('/gerenciarconteudo')}>
-            <SettingsIcon fontSize="small" sx={{mr:1}}/>
-            Gerenciar
-          </MenuItem>
           <MenuItem onClick={handleEditConteudo}>
             <EditOutlined fontSize="small" sx={{ mr: 1 }} />
             Editar

@@ -17,7 +17,6 @@ import Planos from "../pages/Planos";
 import CadastrarPlano from "../pages/CadastrarPlano";
 import EditarPlano from "../pages/EditarPlano";
 import Categorias from "../pages/Categorias";
-import GerenciarConteudo from "../pages/GerenciasConteudo";
 import RouteAnalyticsTracker from "../components/analytics/RouteAnalyticsTracker";
 
 export default function AppRouter() {
@@ -51,7 +50,6 @@ export default function AppRouter() {
           <Route path="planos/cadastrar" element={<CadastrarPlano/>} />
           <Route path="planos/editar/:id" element={<EditarPlano/>} />
           <Route path="categorias" element={<Categorias/>} />
-          <Route path="gerenciarconteudo" element={<GerenciarConteudo/>} />
           {/* aqui você adiciona /cursos, /instrutores, etc */}
         </Route>
 
