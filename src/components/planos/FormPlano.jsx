@@ -4,7 +4,20 @@ import { useNavigate } from "react-router-dom";
 import Lottie from "lottie-react";
 import successAnimation from "../../assets/success-tick.json";
 import api from "../../api/axiosInstance";
+import AppSnackbar from "../feedback/AppSnackbar";
+import { getApiErrorMessage } from "../../lib/apiError";
 import theme from "../../theme/theme";
+
+const normalizeInitialData = (initialData) => ({
+  nome: initialData?.nome || initialData?.name || "",
+  descricao: initialData?.descricao || initialData?.description || "",
+  preco:
+    initialData?.preco !== undefined && initialData?.preco !== null
+      ? String(initialData.preco)
+      : initialData?.price !== undefined && initialData?.price !== null
+        ? String(initialData.price)
+        : "",
+});
 
 const FormPlano = ({
   mode = "create",
@@ -17,6 +30,10 @@ const FormPlano = ({
 
   const [loading, setLoading] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [errorAlert, setErrorAlert] = useState({
+    open: false,
+    message: "",
+  });
   const [formData, setFormData] = useState({
     nome: "",
     descricao: "",
@@ -24,22 +41,17 @@ const FormPlano = ({
   });
 
   useEffect(() => {
-    setFormData({
-      nome: initialData?.nome || "",
-      descricao: initialData?.descricao || "",
-      preco:
-        initialData?.preco !== undefined && initialData?.preco !== null
-          ? String(initialData.preco)
-          : "",
-    });
-  }, [initialData]);
+    setFormData(normalizeInitialData(initialData));
+  }, [initialData?.id, initialData?._id]);
 
   const updateField = (field) => (event) => {
     setFormData((prev) => ({ ...prev, [field]: event.target.value }));
   };
 
   const parsePreco = (value) => {
-    const raw = String(value || "").trim();
+    const raw = String(value || "")
+      .trim()
+      .replace(/[^\d,.-]/g, "");
     if (!raw) return NaN;
 
     // Aceita "1234.56", "1234,56" e "1.234,56"
@@ -98,6 +110,13 @@ const FormPlano = ({
         `Erro ao ${isEdit ? "atualizar" : "cadastrar"} plano:`,
         error?.response?.data || error
       );
+      setErrorAlert({
+        open: true,
+        message: getApiErrorMessage(
+          error,
+          `Não foi possível ${isEdit ? "atualizar" : "cadastrar"} o plano.`
+        ),
+      });
     } finally {
       setLoading(false);
     }
@@ -203,6 +222,15 @@ const FormPlano = ({
           </Fade>
         </DialogContent>
       </Dialog>
+
+      <AppSnackbar
+        open={errorAlert.open}
+        message={errorAlert.message}
+        severity="error"
+        autoHideDuration={5000}
+        onClose={() => setErrorAlert((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      />
     </>
   );
 };

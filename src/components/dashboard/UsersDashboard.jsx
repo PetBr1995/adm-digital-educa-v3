@@ -44,13 +44,6 @@ const UsersDashboard = () => {
     getUsers();
   }, []);
 
-  const infUsuarios = [
-    { number: usuarios.totalUsuarios, nome: "Total de Usuários", icone: School },
-    { number: usuarios.usuariosCancelados, nome: "Usuários Cancelados", icone: PersonOff },
-    { number: usuarios.usuariosComAssinatura, nome: "Assinaturas Ativas", icone: HowToReg },
-    { number: usuarios.usuariosFree, nome: "Usuários Free", icone: Person },
-  ];
-
   // helpers
   const safeNumber = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
   const safeDiv = (num, den) => (den > 0 ? num / den : 0);
@@ -58,10 +51,16 @@ const UsersDashboard = () => {
 
   // KPI computations
   const kpis = useMemo(() => {
-    const total = safeNumber(usuarios.totalUsuarios);
-    const cancelados = safeNumber(usuarios.usuariosCancelados);
-    const assinaturasAtivas = safeNumber(usuarios.usuariosComAssinatura);
-    const free = safeNumber(usuarios.usuariosFree);
+    const total = Math.max(0, safeNumber(usuarios.totalUsuarios));
+    const canceladosRaw = Math.max(0, safeNumber(usuarios.usuariosCancelados));
+    const assinaturasAtivasRaw = Math.max(0, safeNumber(usuarios.usuariosComAssinatura));
+    const freeRaw = Math.max(0, safeNumber(usuarios.usuariosFree));
+
+    const cancelados = Math.min(canceladosRaw, total);
+    const assinaturasAtivas = Math.min(assinaturasAtivasRaw, Math.max(total - cancelados, 0));
+    // Garante que os grupos fechem exatamente no total (sem "buraco" de usuários).
+    const freeCalculado = Math.max(total - cancelados - assinaturasAtivas, 0);
+    const free = total > 0 ? freeCalculado : freeRaw;
 
     const taxaConversao = safeDiv(assinaturasAtivas, total);
     const pctFree = safeDiv(free, total);
@@ -79,6 +78,13 @@ const UsersDashboard = () => {
       taxaCancelamento,
     };
   }, [usuarios]);
+
+  const infUsuarios = [
+    { number: kpis.total, nome: "Total de Usuários", icone: School },
+    { number: kpis.cancelados, nome: "Usuários Cancelados", icone: PersonOff },
+    { number: kpis.assinaturasAtivas, nome: "Assinaturas Ativas", icone: HowToReg },
+    { number: kpis.free, nome: "Usuários Free", icone: Person },
+  ];
 
   // Charts data
   const pieData = useMemo(() => {

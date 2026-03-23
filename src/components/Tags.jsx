@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react"
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Snackbar, TextField, Typography } from "@mui/material"
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField, Typography } from "@mui/material"
 import { Delete } from "@mui/icons-material"
 import api from "../api/axiosInstance"
+import AppSnackbar from "./feedback/AppSnackbar"
+import { getApiErrorMessage } from "../lib/apiError"
 import theme from "../theme/theme"
 
 const Tags = () => {
@@ -53,7 +55,7 @@ const Tags = () => {
             console.log(error)
             setSnackbar({
                 open: true,
-                message: error?.response?.data?.message || "Não foi possível cadastrar a tag.",
+                message: getApiErrorMessage(error, "Não foi possível cadastrar a tag."),
                 severity: "error",
             })
         }).finally(function () {
@@ -100,7 +102,7 @@ const Tags = () => {
             console.log(error)
             setSnackbar({
                 open: true,
-                message: error?.response?.data?.message || "Não foi possível excluir a tag.",
+                message: getApiErrorMessage(error, "Não foi possível excluir a tag."),
                 severity: "error",
             })
         }).finally(function () {
@@ -174,30 +176,37 @@ const Tags = () => {
                                 </Box>
                             ))}
                             {tagsExibidas.length === 0 && (
-                                <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                                    Nenhuma tag de texto encontrada.
-                                </Typography>
+                                <Box
+                                    sx={{
+                                        gridColumn: "1 / -1",
+                                        border: `1px dashed ${theme.palette.divider}`,
+                                        borderRadius: "10px",
+                                        p: 3,
+                                        textAlign: "center",
+                                        bgcolor: "rgba(255,255,255,0.02)",
+                                    }}
+                                >
+                                    <Typography sx={{ fontWeight: 700, mb: 0.6 }}>
+                                        Nenhuma tag cadastrada ainda
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                        Cadastre tags para facilitar filtros e buscas de conteúdos.
+                                    </Typography>
+                                </Box>
                             )}
                         </Box>
                     </Box>
                 </Box>
             </Box>
 
-            <Snackbar
+            <AppSnackbar
                 open={snackbar.open}
+                message={snackbar.message}
+                severity={snackbar.severity}
                 autoHideDuration={4000}
-                onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
                 anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-            >
-                <Alert
-                    onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-                    severity={snackbar.severity}
-                    variant="filled"
-                    sx={{ width: "100%" }}
-                >
-                    {snackbar.message}
-                </Alert>
-            </Snackbar>
+                onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+            />
 
             <Dialog
                 open={Boolean(tagToDelete)}

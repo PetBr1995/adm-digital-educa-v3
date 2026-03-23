@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react"
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Snackbar, TextField, Typography } from "@mui/material"
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, TextField, Typography } from "@mui/material"
 import { Delete } from "@mui/icons-material"
 import api from "../api/axiosInstance"
+import AppSnackbar from "./feedback/AppSnackbar"
+import { getApiErrorMessage } from "../lib/apiError"
 import theme from "../theme/theme"
 
 const Subcategorias = () => {
@@ -69,7 +71,7 @@ const Subcategorias = () => {
             console.log(error)
             setSnackbar({
                 open: true,
-                message: error?.response?.data?.message || "Não foi possível cadastrar a subcategoria.",
+                message: getApiErrorMessage(error, "Não foi possível cadastrar a subcategoria."),
                 severity: "error",
             })
         }).finally(function () {
@@ -116,7 +118,7 @@ const Subcategorias = () => {
             console.log(error)
             setSnackbar({
                 open: true,
-                message: error?.response?.data?.message || "Não foi possível excluir a subcategoria.",
+                message: getApiErrorMessage(error, "Não foi possível excluir a subcategoria."),
                 severity: "error",
             })
         }).finally(function () {
@@ -203,26 +205,38 @@ const Subcategorias = () => {
                                     </IconButton>
                                 </Box>
                             ))}
+                            {subcategorias.length === 0 && (
+                                <Box
+                                    sx={{
+                                        gridColumn: "1 / -1",
+                                        border: `1px dashed ${theme.palette.divider}`,
+                                        borderRadius: "10px",
+                                        p: 3,
+                                        textAlign: "center",
+                                        bgcolor: "rgba(255,255,255,0.02)",
+                                    }}
+                                >
+                                    <Typography sx={{ fontWeight: 700, mb: 0.6 }}>
+                                        Nenhuma subcategoria cadastrada ainda
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                        Cadastre subcategorias para detalhar a classificação dos conteúdos.
+                                    </Typography>
+                                </Box>
+                            )}
                         </Box>
                     </Box>
                 </Box>
             </Box>
 
-            <Snackbar
+            <AppSnackbar
                 open={snackbar.open}
+                message={snackbar.message}
+                severity={snackbar.severity}
                 autoHideDuration={4000}
-                onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
                 anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-            >
-                <Alert
-                    onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-                    severity={snackbar.severity}
-                    variant="filled"
-                    sx={{ width: "100%" }}
-                >
-                    {snackbar.message}
-                </Alert>
-            </Snackbar>
+                onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+            />
 
             <Dialog
                 open={Boolean(subcategoriaToDelete)}

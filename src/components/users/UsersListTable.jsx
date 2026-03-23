@@ -1,5 +1,4 @@
 import {
-  Alert,
   Box,
   Button,
   Chip,
@@ -14,7 +13,6 @@ import {
   Pagination,
   Paper,
   Skeleton,
-  Snackbar,
   Table,
   TableBody,
   TableCell,
@@ -31,6 +29,8 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { Add, DeleteOutline, EditOutlined } from "@mui/icons-material";
 import theme from "../../theme/theme";
 import api from "../../api/axiosInstance";
+import AppSnackbar from "../feedback/AppSnackbar";
+import { getApiErrorMessage } from "../../lib/apiError";
 import SearchBarComponent from "../contentComponents/SearchBarComponente";
 
 const formatCreatedAt = (value) => {
@@ -176,6 +176,7 @@ const UsersListTable = ({ onCreateUser }) => {
 
   const totalFiltrado = usuariosOrdenados.length;
   const totalPages = Math.max(1, Math.ceil(totalFiltrado / limit));
+  const isEmptySystem = !loading && allUsuarios.length === 0;
 
   useEffect(() => {
     if (page > totalPages) setPage(1);
@@ -250,7 +251,7 @@ const UsersListTable = ({ onCreateUser }) => {
       console.log("Erro ao excluir usuário:", error?.response?.data || error);
       setSnackbar({
         open: true,
-        message: "Não foi possível excluir o usuário.",
+        message: getApiErrorMessage(error, "Não foi possível excluir o usuário."),
         severity: "error",
       });
     } finally {
@@ -436,8 +437,22 @@ const UsersListTable = ({ onCreateUser }) => {
               }}
             >
               <Typography variant="body2" color="text.secondary" align="center">
-                Nenhum usuário encontrado
+                {isEmptySystem
+                  ? "Nenhum usuário cadastrado ainda"
+                  : "Nenhum usuário encontrado para esta busca"}
               </Typography>
+              {isEmptySystem && (
+                <Box sx={{ mt: 1.5, display: "flex", justifyContent: "center" }}>
+                  <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    onClick={onCreateUser}
+                    sx={{ textTransform: "capitalize", fontWeight: 700 }}
+                  >
+                    Criar primeiro usuário
+                  </Button>
+                </Box>
+              )}
             </Paper>
           )}
         </Box>
@@ -537,9 +552,23 @@ const UsersListTable = ({ onCreateUser }) => {
             {!loading && usuariosFiltrados.length === 0 && (
               <TableRow>
                 <TableCell colSpan={isTablet ? 4 : 6} align="center">
-                  <Typography variant="body2" color="text.secondary">
-                    Nenhum usuário encontrado
-                  </Typography>
+                  <Box sx={{ py: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {isEmptySystem
+                        ? "Nenhum usuário cadastrado ainda"
+                        : "Nenhum usuário encontrado para esta busca"}
+                    </Typography>
+                    {isEmptySystem && (
+                      <Button
+                        onClick={onCreateUser}
+                        startIcon={<Add />}
+                        variant="contained"
+                        sx={{ mt: 1.2, textTransform: "capitalize", fontWeight: 700 }}
+                      >
+                        Criar primeiro usuário
+                      </Button>
+                    )}
+                  </Box>
                 </TableCell>
               </TableRow>
             )}
@@ -613,22 +642,16 @@ const UsersListTable = ({ onCreateUser }) => {
         </DialogActions>
       </Dialog>
 
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
+        message={snackbar.message}
+        severity={snackbar.severity}
         autoHideDuration={3500}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          variant="filled"
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+      />
 
-      {!loading && (
+      {!loading && totalFiltrado > 0 && (
         <Box
           sx={{
             borderTop: `1px solid ${theme.palette.divider}`,

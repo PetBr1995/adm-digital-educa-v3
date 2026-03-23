@@ -1,10 +1,12 @@
-import { Alert, Box, Button, Dialog, DialogContent, Fade, IconButton, InputAdornment, MenuItem, Snackbar, TextField, Typography, alpha } from "@mui/material";
+import { Box, Button, Dialog, DialogContent, Fade, IconButton, InputAdornment, MenuItem, TextField, Typography, alpha } from "@mui/material";
 import { VisibilityOffOutlined, VisibilityOutlined } from "@mui/icons-material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Lottie from "lottie-react";
 import successAnimation from "../../assets/success-tick.json";
 import api from "../../api/axiosInstance";
+import AppSnackbar from "../feedback/AppSnackbar";
+import { getApiErrorMessage } from "../../lib/apiError";
 import theme from "../../theme/theme";
 
 const CadastrarUsuario = ({ onSuccess }) => {
@@ -104,11 +106,9 @@ const CadastrarUsuario = ({ onSuccess }) => {
             const statusCode = error?.response?.status ?? apiError?.statusCode;
             const apiMessage = apiError?.message;
 
-            let message = "Não foi possível cadastrar o usuário.";
+            let message = getApiErrorMessage(error, "Não foi possível cadastrar o usuário.");
             if (statusCode === 409) {
                 message = Array.isArray(apiMessage) ? apiMessage[0] : apiMessage || "Já existe um usuário cadastrado com esse celular!";
-            } else if (apiMessage) {
-                message = Array.isArray(apiMessage) ? apiMessage[0] : apiMessage;
             }
 
             setErrorAlert({
@@ -272,21 +272,14 @@ const CadastrarUsuario = ({ onSuccess }) => {
                 </DialogContent>
             </Dialog>
 
-            <Snackbar
+            <AppSnackbar
                 open={errorAlert.open}
+                message={errorAlert.message}
+                severity="error"
                 autoHideDuration={5000}
                 onClose={() => setErrorAlert((prev) => ({ ...prev, open: false }))}
                 anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-            >
-                <Alert
-                    onClose={() => setErrorAlert((prev) => ({ ...prev, open: false }))}
-                    severity="error"
-                    variant="filled"
-                    sx={{ width: "100%" }}
-                >
-                    {errorAlert.message}
-                </Alert>
-            </Snackbar>
+            />
         </>
     );
 };

@@ -76,6 +76,7 @@ const Instrutores = () => {
   const totalGeral = allInstrutores.length;
   const totalFiltrado = instrutoresFiltrados.length;
   const totalPages = Math.max(1, Math.ceil(totalFiltrado / limit));
+  const isEmptySystem = !loading && allInstrutores.length === 0;
 
   useEffect(() => {
     if (page > totalPages) setPage(1);
@@ -263,9 +264,23 @@ const Instrutores = () => {
             {!loading && instrutoresFiltrados.length === 0 && (
               <TableRow>
                 <TableCell colSpan={2} align="center">
-                  <Typography variant="body2" color="text.secondary">
-                    Nenhum instrutor encontrado
-                  </Typography>
+                  <Box sx={{ py: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {isEmptySystem
+                        ? "Nenhum instrutor cadastrado ainda"
+                        : "Nenhum instrutor encontrado para esta busca"}
+                    </Typography>
+                    {isEmptySystem && (
+                      <Button
+                        onClick={() => navigate("/cadastrarinstrutor")}
+                        startIcon={<Add />}
+                        variant="contained"
+                        sx={{ mt: 1.2, textTransform: "capitalize", fontWeight: 700 }}
+                      >
+                        Criar primeiro instrutor
+                      </Button>
+                    )}
+                  </Box>
                 </TableCell>
               </TableRow>
             )}
@@ -299,7 +314,7 @@ const Instrutores = () => {
       </Menu>
 
       {/* Pagination */}
-      {!loading && (
+      {!loading && totalFiltrado > 0 && (
         <Box
           sx={{
             borderTop: `1px solid ${theme.palette.divider}`,

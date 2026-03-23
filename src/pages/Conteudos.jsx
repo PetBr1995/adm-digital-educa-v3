@@ -10,7 +10,6 @@ import {
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import theme from "../theme/theme";
 import {
-  Alert,
   Box,
   Button,
   Dialog,
@@ -23,14 +22,15 @@ import {
   MenuItem,
   Pagination,
   Skeleton,
-  Snackbar,
   Typography,
   alpha,
   Tooltip,
   useMediaQuery,
 } from "@mui/material";
 import SearchBarComponent from "../components/contentComponents/SearchBarComponente";
+import AppSnackbar from "../components/feedback/AppSnackbar";
 import api from "../api/axiosInstance";
+import { getApiErrorMessage } from "../lib/apiError";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -129,6 +129,8 @@ const Conteudos = () => {
 
   const totalFiltrado = filteredConteudos.length;
   const totalPages = Math.max(1, Math.ceil(totalFiltrado / limit));
+  const isEmptySystem = !loading && allConteudos.length === 0;
+  const isEmptySearch = !loading && allConteudos.length > 0 && totalFiltrado === 0;
 
   useEffect(() => {
     if (page > totalPages) setPage(1);
@@ -203,7 +205,7 @@ const Conteudos = () => {
       console.error("Erro ao deletar conteúdo:", error?.response?.data || error);
       setSnackbar({
         open: true,
-        message: "Não foi possível deletar o conteúdo.",
+        message: getApiErrorMessage(error, "Não foi possível deletar o conteúdo."),
         severity: "error",
       });
     } finally {
@@ -563,6 +565,64 @@ const Conteudos = () => {
                 </Box>
               );
             })}
+
+          {isEmptySystem && (
+            <Box
+              sx={{
+                gridColumn: "1 / -1",
+                border: `1px dashed ${theme.palette.divider}`,
+                borderRadius: "10px",
+                p: 3,
+                textAlign: "center",
+                bgcolor: alpha(theme.palette.secondary.dark, 0.12),
+              }}
+            >
+              <Typography sx={{ fontWeight: 700, mb: 0.6 }}>
+                Nenhum conteúdo cadastrado ainda
+              </Typography>
+              <Typography sx={{ color: "text.secondary", mb: 2 }}>
+                Comece criando o primeiro conteúdo para aparecer nesta lista.
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<AddRounded />}
+                onClick={() => navigate("/cadastrarconteudo")}
+                sx={{ textTransform: "capitalize", fontWeight: 700 }}
+              >
+                Criar primeiro conteúdo
+              </Button>
+            </Box>
+          )}
+
+          {isEmptySearch && (
+            <Box
+              sx={{
+                gridColumn: "1 / -1",
+                border: `1px dashed ${theme.palette.divider}`,
+                borderRadius: "10px",
+                p: 3,
+                textAlign: "center",
+                bgcolor: alpha(theme.palette.secondary.dark, 0.12),
+              }}
+            >
+              <Typography sx={{ fontWeight: 700, mb: 0.6 }}>
+                Nenhum resultado encontrado
+              </Typography>
+              <Typography sx={{ color: "text.secondary", mb: 2 }}>
+                Tente outro termo de busca para localizar conteúdos.
+              </Typography>
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  setSearch("");
+                  setPage(1);
+                }}
+                sx={{ textTransform: "capitalize" }}
+              >
+                Limpar busca
+              </Button>
+            </Box>
+          )}
         </Box>
 
         <Menu
@@ -619,22 +679,16 @@ const Conteudos = () => {
           </DialogActions>
         </Dialog>
 
-        <Snackbar
+        <AppSnackbar
           open={snackbar.open}
+          message={snackbar.message}
+          severity={snackbar.severity}
           autoHideDuration={3500}
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
           anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        >
-          <Alert
-            onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-            severity={snackbar.severity}
-            variant="filled"
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        />
 
-        {!loading && (
+        {!loading && totalFiltrado > 0 && (
           <Box
             sx={{
               borderTop: `1px solid ${theme.palette.divider}`,

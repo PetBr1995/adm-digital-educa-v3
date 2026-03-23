@@ -14,6 +14,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import api from "../api/axiosInstance";
+import { getApiErrorMessage } from "../lib/apiError";
 import theme from "../theme/theme";
 import {
   extractVimeoEmbedFromObject,
@@ -86,7 +87,7 @@ const ConteudoPlayer = () => {
       } catch (err) {
         if (!mounted) return;
         console.error("Erro ao carregar player do conteúdo:", err);
-        setError("Falha ao carregar o conteúdo.");
+        setError(getApiErrorMessage(err, "Falha ao carregar o conteúdo."));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -171,8 +172,6 @@ const ConteudoPlayer = () => {
                 </Typography>
               </Box>
 
-              <Stack direction="row" spacing={1}>
-              </Stack>
             </Stack>
 
             <Divider sx={{ my: 2, borderColor: alpha("#fff", 0.1) }} />
