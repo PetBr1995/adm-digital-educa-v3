@@ -12,6 +12,7 @@ export default function useConteudoSubmit({
   thumbnailDestaque,
   modulos,
   videosLivres,
+  deletedVideoIds,
   navigate,
   setStep,
   uploadVideoToVimeo,
@@ -50,6 +51,154 @@ export default function useConteudoSubmit({
     }
     return fallback;
   };
+
+  const uploadExtrasForConteudo = useCallback(
+    async ({ conteudoIdValue, token }) => {
+      const moduloItems = (modulos || []).filter((m) => m?.video?.file);
+      const livreItems = (videosLivres || []).filter((v) => v?.file);
+      const totalExtras = moduloItems.length + livreItems.length;
+
+      if (totalExtras <= 0) return;
+
+      setExtraUploadProgress(0);
+      setExtrasUploading(true);
+
+      if (moduloItems.length > 0) {
+        setStatus("Criando módulos e enviando vídeos...");
+        for (let i = 0; i < moduloItems.length; i++) {
+          const m = moduloItems[i];
+          const moduloRes = await api.post(
+            "/modulo-conteudo/create",
+            {
+              titulo: m.titulo?.trim(),
+              subtitulo: m.subtitulo?.trim(),
+              descricao: m.descricao?.trim(),
+              conteudoId: conteudoIdValue,
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          const moduloId =
+            moduloRes.data?.modulo?.id ??
+            moduloRes.data?.id ??
+            moduloRes.data?.moduloId;
+
+          if (!moduloId) {
+            throw new Error("ID do módulo não retornado pelo backend");
+          }
+
+          await uploadVideoToVimeo({
+            file: m.video.file,
+            titulo: m.video.titulo,
+            duracao: m.video.duracao,
+            conteudoId: conteudoIdValue,
+            moduloId,
+            onProgress: (percent) => {
+              const overall = ((i + percent / 100) / totalExtras) * 100;
+              setExtraUploadProgress(Math.round(overall));
+            },
+          });
+
+          const overall = ((i + 1) / totalExtras) * 100;
+          setExtraUploadProgress(Math.round(overall));
+        }
+      }
+
+      if (livreItems.length > 0) {
+        setStatus("Enviando vídeos livres...");
+        for (let j = 0; j < livreItems.length; j++) {
+          const v = livreItems[j];
+          const index = moduloItems.length + j;
+          await uploadVideoToVimeo({
+            file: v.file,
+            titulo: v.titulo,
+            duracao: v.duracao,
+            conteudoId: conteudoIdValue,
+            moduloId: null,
+            onProgress: (percent) => {
+              const overall = ((index + percent / 100) / totalExtras) * 100;
+              setExtraUploadProgress(Math.round(overall));
+            },
+          });
+
+          const overall = ((index + 1) / totalExtras) * 100;
+          setExtraUploadProgress(Math.round(overall));
+        }
+      }
+
+      setExtrasUploading(false);
+    },
+    [api, modulos, videosLivres, uploadVideoToVimeo]
+  );
+
+  const syncExistingVideos = useCallback(
+    async ({ token }) => {
+      if (mode !== "edit") return { failedDeletes: 0, failedRenames: 0 };
+
+      const deletedSet = new Set((deletedVideoIds || []).map((id) => String(id)));
+      const existingVideos = [
+        ...(modulos || []).map((m) => m?.video).filter(Boolean),
+        ...(videosLivres || []),
+      ]
+        .filter((v) => v?.isExisting && v?.videoId)
+        .map((v) => ({
+          videoId: String(v.videoId),
+          titulo: String(v.titulo ?? "").trim(),
+          originalTitulo: String(v.originalTitulo ?? "").trim(),
+        }))
+        .filter((v) => !deletedSet.has(v.videoId));
+
+      const renameTargets = [];
+      const seen = new Set();
+      existingVideos.forEach((v) => {
+        if (!v.videoId || seen.has(v.videoId)) return;
+        seen.add(v.videoId);
+        if (v.titulo && v.titulo !== v.originalTitulo) {
+          renameTargets.push(v);
+        }
+      });
+
+      let failedDeletes = 0;
+      let failedRenames = 0;
+
+      for (const videoId of deletedSet) {
+        try {
+          await api.delete(`/video/${videoId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } catch (err) {
+          console.error(`Erro ao excluir vídeo ${videoId}:`, err);
+          failedDeletes += 1;
+        }
+      }
+
+      for (const item of renameTargets) {
+        try {
+          await api.patch(
+            `/video/${item.videoId}`,
+            { titulo: item.titulo },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          try {
+            await api.post(
+              `/vimeo-client/video/${item.videoId}/update-metadata`,
+              { name: item.titulo, description: "" },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          } catch (metadataErr) {
+            console.error(`Falha ao atualizar metadata do vídeo ${item.videoId}:`, metadataErr);
+          }
+        } catch (err) {
+          console.error(`Erro ao renomear vídeo ${item.videoId}:`, err);
+          failedRenames += 1;
+        }
+      }
+
+      return { failedDeletes, failedRenames };
+    },
+    [api, mode, modulos, videosLivres, deletedVideoIds]
+  );
 
   const handleSubmitFinal = useCallback(async () => {
     if (!step1Valid) return;
@@ -140,6 +289,56 @@ export default function useConteudoSubmit({
           });
         }
 
+        const introVideoTitle = String(
+          formData.introVideoTitulo || formData.titulo || ""
+        ).trim();
+
+        if (introVideoTitle) {
+          try {
+            await api.post(
+              `/vimeo-client/update-metadata/${conteudoId}`,
+              {
+                name: introVideoTitle,
+                description: formData.descricao || "",
+              },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          } catch (metadataErr) {
+            console.error(
+              "Falha ao atualizar título do vídeo introdutório:",
+              metadataErr
+            );
+          }
+        }
+
+        try {
+          setStatus("Sincronizando vídeos existentes...");
+          const { failedDeletes, failedRenames } = await syncExistingVideos({ token });
+
+          await uploadExtrasForConteudo({
+            conteudoIdValue: conteudoId,
+            token,
+          });
+
+          if (failedDeletes > 0 || failedRenames > 0) {
+            const warnings = [];
+            if (failedDeletes > 0) warnings.push(`${failedDeletes} exclusão(ões)`);
+            if (failedRenames > 0) warnings.push(`${failedRenames} renomeação(ões)`);
+            setStatus(
+              `Conteúdo atualizado, mas houve falha em ${warnings.join(" e ")} de vídeos existentes.`
+            );
+            setLoading(false);
+            setExtrasUploading(false);
+            return;
+          }
+        } catch (extrasErr) {
+          console.error("Erro ao enviar conteúdos extras:", extrasErr);
+          setStatus("Conteúdo atualizado, mas falhou ao enviar novos vídeos.");
+          setLoading(false);
+          setExtrasUploading(false);
+          return;
+        }
+
         setStatus("Conteúdo atualizado com sucesso!");
         localStorage.removeItem(storageKey);
         setLoading(false);
@@ -168,104 +367,17 @@ export default function useConteudoSubmit({
       const { vimeoUploadLink, conteudo } = res.data;
 
       const finish = async (metadataOk = true) => {
-        const moduloItems = (modulos || []).filter((m) => m?.video?.file);
-        const livreItems = (videosLivres || []).filter((v) => v?.file);
-        const totalExtras = moduloItems.length + livreItems.length;
-
-        if (totalExtras > 0) {
-          setExtraUploadProgress(0);
-          setExtrasUploading(true);
-        }
-
-        if (moduloItems.length > 0) {
-          try {
-            setStatus("Criando módulos e enviando vídeos...");
-            for (let i = 0; i < moduloItems.length; i++) {
-              const m = moduloItems[i];
-              const moduloRes = await api.post(
-                "/modulo-conteudo/create",
-                {
-                  titulo: m.titulo?.trim(),
-                  subtitulo: m.subtitulo?.trim(),
-                  descricao: m.descricao?.trim(),
-                  conteudoId: conteudo.id,
-                },
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
-
-              const moduloId =
-                moduloRes.data?.modulo?.id ??
-                moduloRes.data?.id ??
-                moduloRes.data?.moduloId;
-
-              if (!moduloId) {
-                throw new Error("ID do módulo não retornado pelo backend");
-              }
-
-              await uploadVideoToVimeo({
-                file: m.video.file,
-                titulo: m.video.titulo,
-                duracao: m.video.duracao,
-                conteudoId: conteudo.id,
-                moduloId,
-                onProgress: (percent) => {
-                  if (totalExtras > 0) {
-                    const overall = ((i + percent / 100) / totalExtras) * 100;
-                    setExtraUploadProgress(Math.round(overall));
-                  }
-                },
-              });
-
-              if (totalExtras > 0) {
-                const overall = ((i + 1) / totalExtras) * 100;
-                setExtraUploadProgress(Math.round(overall));
-              }
-            }
-          } catch (err) {
-            console.error("Erro ao enviar módulos:", err);
-            setStatus("Conteúdo criado, mas falhou ao enviar módulos.");
-            setLoading(false);
-            setExtrasUploading(false);
-            return;
-          }
-        }
-
-        if (livreItems.length > 0) {
-          try {
-            setStatus("Enviando vídeos livres...");
-            for (let j = 0; j < livreItems.length; j++) {
-              const v = livreItems[j];
-              const index = moduloItems.length + j;
-              await uploadVideoToVimeo({
-                file: v.file,
-                titulo: v.titulo,
-                duracao: v.duracao,
-                conteudoId: conteudo.id,
-                moduloId: null,
-                onProgress: (percent) => {
-                  if (totalExtras > 0) {
-                    const overall = ((index + percent / 100) / totalExtras) * 100;
-                    setExtraUploadProgress(Math.round(overall));
-                  }
-                },
-              });
-
-              if (totalExtras > 0) {
-                const overall = ((index + 1) / totalExtras) * 100;
-                setExtraUploadProgress(Math.round(overall));
-              }
-            }
-          } catch (err) {
-            console.error("Erro ao enviar vídeos livres:", err);
-            setStatus("Conteúdo criado, mas falhou ao enviar vídeos livres.");
-            setLoading(false);
-            setExtrasUploading(false);
-            return;
-          }
-        }
-
-        if (totalExtras > 0) {
+        try {
+          await uploadExtrasForConteudo({
+            conteudoIdValue: conteudo.id,
+            token,
+          });
+        } catch (err) {
+          console.error("Erro ao enviar conteúdos extras:", err);
+          setStatus("Conteúdo criado, mas falhou ao enviar novos vídeos.");
+          setLoading(false);
           setExtrasUploading(false);
+          return;
         }
 
         setStatus(
@@ -353,8 +465,11 @@ export default function useConteudoSubmit({
     thumbnailDestaque,
     modulos,
     videosLivres,
+    deletedVideoIds,
     navigate,
     uploadVideoToVimeo,
+    uploadExtrasForConteudo,
+    syncExistingVideos,
     storageKey,
     step1Valid,
     step3Valid,

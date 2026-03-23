@@ -22,6 +22,7 @@ import Swal from "sweetalert2";
 import api from "../../api/axiosInstance";
 import { useAuth } from "../../auth/AuthContext";
 import theme from "../../theme/theme";
+import { setUserProperties, trackEvent } from "../../lib/analytics";
 
 // Lottie
 import Lottie from "lottie-react";
@@ -82,12 +83,16 @@ const Login = () => {
       const token = response.data.access_token;
       login(token);
 
+      trackEvent("login_success", { method: "email_password" });
+      setUserProperties({ user_role: "superadmin", logged_in: "true" });
+
       setLoginSuccess(true);
 
       setTimeout(() => {
         navigate("/dashboard", { replace: true });
       }, 1600);
     } catch (error) {
+      trackEvent("login_failed", { method: "email_password" });
       Swal.fire({
         icon: "error",
         title: "Erro ao entrar",

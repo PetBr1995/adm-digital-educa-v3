@@ -275,6 +275,27 @@ const Step3ExtrasUpload = () => {
           </Button>
         </Box>
 
+        <TextField
+          fullWidth
+          margin="normal"
+          label="Título do vídeo introdutório"
+          value={formData.introVideoTitulo || ""}
+          onChange={(e) =>
+            setFormData((prev) => ({
+              ...prev,
+              introVideoTitulo: e.target.value.slice(0, 120),
+            }))
+          }
+          inputProps={{ maxLength: 120 }}
+          helperText={`${String(formData.introVideoTitulo || "").length}/120 caracteres`}
+          sx={{
+            mt: 2,
+            "& .MuiOutlinedInput-root": { borderRadius: 2, color: "#fff" },
+            "& .MuiInputLabel-root": { color: alpha("#fff", 0.75) },
+            "& .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#fff", 0.25) },
+          }}
+        />
+
         {videoFile && (
           <Typography variant="body2" sx={{ mt: 1, opacity: 0.9, color: "#fff" }}>
             {videoFile.name} — {(videoFile.size / (1024 * 1024)).toFixed(2)} MB

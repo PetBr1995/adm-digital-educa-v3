@@ -38,6 +38,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { AirplaneTicket, Category, CoPresent, DonutLarge, GroupOutlined, VideoLibrary } from "@mui/icons-material";
 
 import { useAuth } from "../auth/AuthContext";
+import { trackEvent } from "../lib/analytics";
 
 const drawerWidth = 240;
 
@@ -143,6 +144,7 @@ export default function Home() {
   const handleMobileDrawerClose = () => setMobileOpen(false);
 
   const handleLogout = () => {
+    trackEvent("logout", { source: "account_menu" });
     logout();
     navigate("/login", { replace: true });
   };
@@ -367,6 +369,11 @@ export default function Home() {
                 <ListItem key={item.label} disablePadding sx={{ display: "block" }}>
                   <ListItemButton
                     onClick={() => {
+                      trackEvent("menu_navigation", {
+                        from_path: location.pathname,
+                        to_path: item.path,
+                        device: "mobile",
+                      });
                       navigate(item.path);
                       handleMobileDrawerClose();
                     }}
@@ -497,7 +504,14 @@ export default function Home() {
             return (
               <ListItem key={item.label} disablePadding sx={{ display: "block" }}>
                 <ListItemButton
-                  onClick={() => navigate(item.path)}
+                  onClick={() => {
+                    trackEvent("menu_navigation", {
+                      from_path: location.pathname,
+                      to_path: item.path,
+                      device: "desktop",
+                    });
+                    navigate(item.path);
+                  }}
                   selected={isActive}
                   sx={{
                     minHeight: 48,

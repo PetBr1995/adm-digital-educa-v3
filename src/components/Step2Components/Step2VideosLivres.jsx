@@ -17,7 +17,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { useCadastrarConteudo } from "../../context/CadastrarConteudoContext";
 
 const Step2VideosLivres = () => {
-  const { videosLivres, setVideosLivres } = useCadastrarConteudo();
+  const { videosLivres, setVideosLivres, setDeletedVideoIds } = useCadastrarConteudo();
   const inputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -62,6 +62,10 @@ const Step2VideosLivres = () => {
 
       const newItem = {
         id: Date.now(),
+        videoId: null,
+        moduloId: null,
+        isExisting: false,
+        originalTitulo: file.name.replace(/\.[^/.]+$/, ""),
         file,
         titulo: file.name.replace(/\.[^/.]+$/, ""),
         duracao,
@@ -101,7 +105,17 @@ const Step2VideosLivres = () => {
   };
 
   const handleRemove = (id) => {
-    setVideosLivres((prev) => prev.filter((v) => v.id !== id));
+    setVideosLivres((prev) => {
+      const target = prev.find((v) => v.id === id);
+      if (target?.isExisting && target?.videoId) {
+        setDeletedVideoIds((curr) =>
+          curr.includes(String(target.videoId))
+            ? curr
+            : [...curr, String(target.videoId)]
+        );
+      }
+      return prev.filter((v) => v.id !== id);
+    });
   };
 
   const handleTitleChange = (id, titulo) => {
@@ -222,6 +236,12 @@ const Step2VideosLivres = () => {
                           variant="outlined"
                         />
                         <Chip size="small" label={`Duração: ${formatDuration(v.duracao)}`} sx={{ color: "#fff" }} variant="outlined" />
+                        <Chip
+                          size="small"
+                          label={v.isExisting ? "Existente" : "Novo"}
+                          sx={{ color: "#fff" }}
+                          variant="outlined"
+                        />
                       </Box>
                     </Box>
 

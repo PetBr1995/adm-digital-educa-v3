@@ -22,6 +22,7 @@ const Step2Modulos = () => {
     setShowFormModulo,
     modulos,
     setModulos,
+    setDeletedVideoIds,
   } = useCadastrarConteudo();
   // --- vídeo (1 por módulo) ---
   const [isDragging, setIsDragging] = useState(false);
@@ -119,10 +120,17 @@ const Step2Modulos = () => {
     if (!canSave) return;
     const newModulo = {
       id: Date.now(),
+      moduloId: null,
+      isExisting: false,
       titulo: titulo.trim(),
       subtitulo: subtitulo.trim(),
       descricao: descricao.trim(),
-      video,
+      video: {
+        ...video,
+        videoId: null,
+        isExisting: false,
+        originalTitulo: video?.titulo ?? "",
+      },
     };
     setModulos((prev) => [...prev, newModulo]);
     setTitulo("");
@@ -133,7 +141,30 @@ const Step2Modulos = () => {
   };
 
   const handleRemoveModulo = (id) => {
-    setModulos((prev) => prev.filter((m) => m.id !== id));
+    setModulos((prev) => {
+      const target = prev.find((m) => m.id === id);
+      if (target?.video?.isExisting && target?.video?.videoId) {
+        setDeletedVideoIds((curr) =>
+          curr.includes(String(target.video.videoId))
+            ? curr
+            : [...curr, String(target.video.videoId)]
+        );
+      }
+      return prev.filter((m) => m.id !== id);
+    });
+  };
+
+  const handleModuloVideoTitleChange = (id, videoTitulo) => {
+    setModulos((prev) =>
+      prev.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              video: m.video ? { ...m.video, titulo: videoTitulo } : m.video,
+            }
+          : m
+      )
+    );
   };
 
   return (
@@ -434,6 +465,12 @@ const Step2Modulos = () => {
                       sx={{ color: "#fff", borderColor: alpha("#fff", 0.25) }}
                       variant="outlined"
                     />
+                    <Chip
+                      size="small"
+                      label={m.video?.isExisting ? "Existente" : "Novo"}
+                      sx={{ color: "#fff", borderColor: alpha("#fff", 0.25) }}
+                      variant="outlined"
+                    />
                     {m.video?.duracao !== undefined && (
                       <Chip
                         size="small"
@@ -458,6 +495,20 @@ const Step2Modulos = () => {
                   </IconButton>
                 </Tooltip>
               </Box>
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Título do vídeo"
+                value={m.video?.titulo || ""}
+                onChange={(e) => handleModuloVideoTitleChange(m.id, e.target.value)}
+                disabled={!m.video}
+                sx={{
+                  mt: 2,
+                  "& .MuiOutlinedInput-root": { borderRadius: 2, color: "#fff" },
+                  "& .MuiInputLabel-root": { color: alpha("#fff", 0.75) },
+                  "& .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#fff", 0.25) },
+                }}
+              />
             </Box>
           ))}
         </Box>

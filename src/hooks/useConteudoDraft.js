@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 
 const sanitizeVideoItem = (v) => ({
   id: v?.id ?? Date.now(),
+  videoId: v?.videoId ?? v?.id ?? null,
+  moduloId: v?.moduloId ?? null,
+  isExisting: Boolean(v?.isExisting),
+  originalTitulo: v?.originalTitulo ?? v?.titulo ?? "",
   titulo: v?.titulo ?? "",
   duracao: v?.duracao ?? 0,
   progress: 0,
@@ -14,6 +18,8 @@ const sanitizeVideoItem = (v) => ({
 
 const sanitizeModuloItem = (m) => ({
   id: m?.id ?? Date.now(),
+  moduloId: m?.moduloId ?? m?.id ?? null,
+  isExisting: Boolean(m?.isExisting),
   titulo: m?.titulo ?? "",
   subtitulo: m?.subtitulo ?? "",
   descricao: m?.descricao ?? "",

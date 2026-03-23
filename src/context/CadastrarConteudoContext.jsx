@@ -18,6 +18,7 @@ const DEFAULT_FORM_DATA = {
   destaque: false,
   gratuitoTipo: "NENHUM",
   gratuitoDataFim: "",
+  introVideoTitulo: "",
   instrutorIds: [],
   tagIds: [],
 };
@@ -47,6 +48,89 @@ const normalizeMultiIds = (items, nestedKey) => {
       return String(item?._id ?? item?.id ?? "");
     })
     .filter(Boolean);
+};
+
+const normalizeVideo = (video, fallbackId, moduloId = null) => {
+  if (!video) return null;
+  const videoId = String(
+    video.id ?? video._id ?? video.videoId ?? fallbackId ?? ""
+  ).trim();
+  if (!videoId) return null;
+  const titulo = String(
+    video.titulo ?? video.nome ?? video.name ?? `Vídeo ${videoId}`
+  );
+  return {
+    id: `existing-video-${videoId}`,
+    videoId,
+    moduloId: moduloId ? String(moduloId) : null,
+    isExisting: true,
+    originalTitulo: titulo,
+    titulo,
+    duracao: Number(video.duracao ?? video.duration ?? 0),
+    progress: 0,
+    status: "pending",
+    file: null,
+    fileName: String(video.fileName ?? video.nomeArquivo ?? titulo),
+    fileSize: Number(video.fileSize ?? video.tamanho ?? 0),
+    fileType: String(video.fileType ?? video.tipoArquivo ?? ""),
+  };
+};
+
+const normalizeExistingContentVideos = (raw) => {
+  const moduloList =
+    raw?.modulos ??
+    raw?.moduloConteudos ??
+    raw?.modulosConteudo ??
+    raw?.modules ??
+    [];
+
+  const modulos = [];
+  const videoIdsInModulo = new Set();
+
+  if (Array.isArray(moduloList)) {
+    moduloList.forEach((mod, index) => {
+      const moduloId = String(mod?.id ?? mod?._id ?? `mod-${index}`);
+      const moduloVideos =
+        mod?.videos ??
+        mod?.videoConteudos ??
+        mod?.videosConteudo ??
+        (mod?.video ? [mod.video] : []);
+
+      const firstVideo = Array.isArray(moduloVideos) ? moduloVideos[0] : null;
+      const normalizedVideo = normalizeVideo(firstVideo, `${moduloId}-video`, moduloId);
+      if (normalizedVideo?.videoId) videoIdsInModulo.add(normalizedVideo.videoId);
+
+      modulos.push({
+        id: `existing-modulo-${moduloId}`,
+        moduloId,
+        isExisting: true,
+        titulo: String(mod?.titulo ?? mod?.nome ?? `Módulo ${index + 1}`),
+        subtitulo: String(mod?.subtitulo ?? mod?.subTitulo ?? ""),
+        descricao: String(mod?.descricao ?? ""),
+        video: normalizedVideo,
+      });
+    });
+  }
+
+  const freeVideoCandidates =
+    raw?.videosLivres ??
+    raw?.videos ??
+    raw?.videoConteudos ??
+    raw?.conteudoVideos ??
+    [];
+
+  const videosLivres = [];
+  if (Array.isArray(freeVideoCandidates)) {
+    freeVideoCandidates.forEach((video, index) => {
+      const normalized = normalizeVideo(video, `livre-${index}`, video?.moduloId ?? null);
+      if (!normalized) return;
+      if (normalized.moduloId) return;
+      if (videoIdsInModulo.has(normalized.videoId)) return;
+      videosLivres.push(normalized);
+    });
+  }
+
+  return { modulos, videosLivres };
 };
 
 export const CadastrarConteudoProvider = ({
@@ -83,6 +167,7 @@ export const CadastrarConteudoProvider = ({
   const [thumbnailDesktop, setThumbnailDesktop] = useState(null);
   const [thumbnailMobile, setThumbnailMobile] = useState(null);
   const [thumbnailDestaque, setThumbnailDestaque] = useState(null);
+  const [deletedVideoIds, setDeletedVideoIds] = useState([]);
 
   const updateField = (field) => (e) => {
     const value = e.target.value;
@@ -132,6 +217,8 @@ export const CadastrarConteudoProvider = ({
 
     const instrutorIds = normalizeMultiIds(raw.instrutores, "instrutor");
     const tagIds = normalizeMultiIds(raw.tags, "tag");
+    const { modulos: existingModulos, videosLivres: existingVideosLivres } =
+      normalizeExistingContentVideos(raw);
 
     const categoriaId = String(
       raw.categoriaId ??
@@ -160,12 +247,20 @@ export const CadastrarConteudoProvider = ({
       destaque: Boolean(raw.destaque),
       gratuitoTipo: String(raw.gratuitoTipo ?? "NENHUM"),
       gratuitoDataFim: String(raw.gratuitoAte ?? raw.gratuitoDataFim ?? ""),
+      introVideoTitulo: String(
+        raw.introVideoTitulo ??
+          raw.videoTitulo ??
+          raw.video?.titulo ??
+          raw.titulo ??
+          ""
+      ),
       instrutorIds,
       tagIds,
     }));
 
-    setModulos([]);
-    setVideosLivres([]);
+    setModulos(existingModulos);
+    setVideosLivres(existingVideosLivres);
+    setDeletedVideoIds([]);
     setVideoFile(null);
     setThumbnailDesktop(null);
     setThumbnailMobile(null);
@@ -181,8 +276,6 @@ export const CadastrarConteudoProvider = ({
     const loadConteudo = async () => {
       if (initialConteudoData) {
         hydrateConteudoData(initialConteudoData);
-        if (mounted) setLoadingInitialData(false);
-        return;
       }
 
       if (!conteudoId) {
@@ -197,7 +290,16 @@ export const CadastrarConteudoProvider = ({
       setLoadError("");
 
       try {
-        const response = await api.get(`/conteudos/${conteudoId}`);
+        let response;
+        try {
+          response = await api.get(`/conteudos/${conteudoId}/admin`);
+        } catch (adminErr) {
+          response = await api.get(`/conteudos/${conteudoId}`);
+          if (process.env.NODE_ENV !== "production") {
+            console.warn("Fallback para /conteudos/:id (sem /admin):", adminErr);
+          }
+        }
+
         const raw = response.data?.data ?? response.data?.conteudo ?? response.data ?? {};
 
         if (!mounted) return;
@@ -263,6 +365,7 @@ export const CadastrarConteudoProvider = ({
     storageKey,
     step1Valid,
     step3Valid,
+    deletedVideoIds,
   });
 
   const handleClearDraft = () => {
@@ -271,6 +374,7 @@ export const CadastrarConteudoProvider = ({
     setThumbnailDesktop(null);
     setThumbnailMobile(null);
     setThumbnailDestaque(null);
+    setDeletedVideoIds([]);
     setStatus("");
     setUploadProgress(0);
     setLoading(false);
@@ -288,6 +392,8 @@ export const CadastrarConteudoProvider = ({
     setModulos,
     videosLivres,
     setVideosLivres,
+    deletedVideoIds,
+    setDeletedVideoIds,
     showFormModulo,
     setShowFormModulo,
     categorias,
