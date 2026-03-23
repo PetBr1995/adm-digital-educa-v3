@@ -125,7 +125,7 @@ const ConteudoPlayer = () => {
           sx={{
             borderRadius: 3,
             border: `1px solid ${theme.palette.divider}`,
-            background: "linear-gradient(180deg, rgba(24,24,44,0.88), rgba(15,15,30,0.96))",
+            background:theme.palette.secondary.light,
             boxShadow: `0 24px 60px ${alpha("#000", 0.45)}`,
             overflow: "hidden",
           }}
