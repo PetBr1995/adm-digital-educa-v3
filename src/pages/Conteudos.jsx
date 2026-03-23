@@ -3,6 +3,7 @@ import {
   AddRounded,
   DeleteOutline,
   EditOutlined,
+  PlayArrowRounded,
   StarBorder,
   TimerOutlined,
 } from "@mui/icons-material";
@@ -25,6 +26,7 @@ import {
   Snackbar,
   Typography,
   alpha,
+  Tooltip,
   useMediaQuery,
 } from "@mui/material";
 import SearchBarComponent from "../components/contentComponents/SearchBarComponente";
@@ -209,6 +211,12 @@ const Conteudos = () => {
       setDeleteDialogOpen(false);
       setConteudoToDelete(null);
     }
+  };
+
+  const handleOpenWatchPage = (conteudo) => {
+    const conteudoId = conteudo?.id ?? conteudo?._id;
+    if (!conteudoId) return;
+    navigate(`/conteudos/${conteudoId}/player`, { state: { conteudo } });
   };
 
   return (
@@ -424,6 +432,7 @@ const Conteudos = () => {
                   <Box
                     sx={{
                       mt: 2,
+                      position: "relative",
                       width: "100%",
                       aspectRatio: "16 / 9",
                       overflow: "hidden",
@@ -441,6 +450,27 @@ const Conteudos = () => {
                         display: "block",
                       }}
                     />
+                    <Tooltip
+                      title="Abrir player"
+                    >
+                      <IconButton
+                        onClick={() => handleOpenWatchPage(conteudo)}
+                        sx={{
+                          position: "absolute",
+                          top: "50%",
+                          left: "50%",
+                          transform: "translate(-50%, -50%)",
+                          width: 56,
+                          height: 56,
+                          bgcolor: alpha("#000", 0.62),
+                          color: "#fff",
+                          border: `1px solid ${alpha("#fff", 0.25)}`,
+                          "&:hover": { bgcolor: alpha("#000", 0.78) },
+                        }}
+                      >
+                        <PlayArrowRounded sx={{ fontSize: 32 }} />
+                      </IconButton>
+                    </Tooltip>
                   </Box>
 
                   <Box sx={{ p: 2 }}>

@@ -6,6 +6,7 @@ import Dashboard from "../pages/Dashboard";
 import ProtectedAdminRoute from "../auth/ProtectedRouter";
 import Home from "../layout/Home";
 import Conteudos from "../pages/Conteudos";
+import ConteudoPlayer from "../pages/ConteudoPlayer";
 import CadastrarConteudo from "../pages/CadastrarConteudo";
 import EditarConteudo from "../pages/EditarConteudo";
 import Instrutores from "../pages/Instrutores";
@@ -39,6 +40,7 @@ export default function AppRouter() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="conteudos" element={<Conteudos />} />
+          <Route path="conteudos/:id/player" element={<ConteudoPlayer />} />
           <Route path="cadastrarconteudo" element={<CadastrarConteudo />} />
           <Route path="conteudos/editar/:id" element={<EditarConteudo />} />
           <Route path="instrutores" element={<Instrutores/>}/>

@@ -288,7 +288,6 @@ const Instrutores = () => {
           },
         }}
       >
-
         <MenuItem onClick={handleEditInstrutor}>
           <EditOutlined fontSize="small" sx={{ mr: 1 }} />
           Editar
