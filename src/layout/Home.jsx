@@ -29,7 +29,6 @@ import {
   useMediaQuery,
 } from "@mui/material";
 
-import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -230,12 +229,6 @@ export default function Home() {
               ml: "auto",
             }}
           >
-            <Tooltip title="Notificações">
-              <IconButton aria-label="Notificações">
-                <NotificationsIcon />
-              </IconButton>
-            </Tooltip>
-
             <Tooltip title="Conta">
               <IconButton
                 aria-label="Conta"

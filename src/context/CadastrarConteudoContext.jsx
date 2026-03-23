@@ -20,7 +20,7 @@ const DEFAULT_FORM_DATA = {
   gratuitoDataFim: "",
   introVideoTitulo: "",
   instrutorIds: [],
-  tagIds: [],
+  tags: [],
 };
 
 const CadastrarConteudoContext = createContext(null);
@@ -48,6 +48,24 @@ const normalizeMultiIds = (items, nestedKey) => {
       return String(item?._id ?? item?.id ?? "");
     })
     .filter(Boolean);
+};
+
+const normalizeTagNames = (items) => {
+  if (!Array.isArray(items)) return [];
+  const clean = (value) =>
+    String(value || "")
+      .replace(/^#/, "")
+      .trim();
+
+  const names = items
+    .map((item) => {
+      if (typeof item === "string") return clean(item);
+      if (item?.tag) return clean(item.tag?.nome ?? item.tag?.name);
+      return clean(item?.nome ?? item?.name);
+    })
+    .filter(Boolean);
+
+  return Array.from(new Set(names));
 };
 
 const normalizeVideo = (video, fallbackId, moduloId = null) => {
@@ -216,7 +234,7 @@ export const CadastrarConteudoProvider = ({
     if (!raw) return;
 
     const instrutorIds = normalizeMultiIds(raw.instrutores, "instrutor");
-    const tagIds = normalizeMultiIds(raw.tags, "tag");
+    const tagNames = normalizeTagNames(raw.tags);
     const { modulos: existingModulos, videosLivres: existingVideosLivres } =
       normalizeExistingContentVideos(raw);
 
@@ -255,7 +273,7 @@ export const CadastrarConteudoProvider = ({
           ""
       ),
       instrutorIds,
-      tagIds,
+      tags: tagNames,
     }));
 
     setModulos(existingModulos);

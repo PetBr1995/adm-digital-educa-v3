@@ -20,7 +20,6 @@ const Step3ExtrasUpload = () => {
     setFormData,
     updateField,
     instrutores,
-    tags,
     thumbnailDesktop,
     thumbnailMobile,
     thumbnailDestaque,
@@ -114,38 +113,6 @@ const Step3ExtrasUpload = () => {
           <MenuItem key={i.id} value={i.id}>
             <Checkbox checked={(formData.instrutorIds || []).includes(i.id)} />
             <ListItemText primary={i.nome} />
-          </MenuItem>
-        ))}
-      </TextField>
-
-      <TextField
-        select
-        fullWidth
-        label="Tags"
-        value={formData.tagIds}
-        onChange={(e) => {
-          const value = e.target.value;
-          setFormData((prev) => ({
-            ...prev,
-            tagIds: typeof value === "string" ? value.split(",") : value,
-          }));
-        }}
-        SelectProps={{
-          multiple: true,
-          renderValue: (selected) =>
-            selected?.length > 0
-              ? tags
-                  .filter((t) => selected.includes(t.id))
-                  .map((t) => `#${t.nome}`)
-                  .join(", ")
-              : "",
-        }}
-        sx={{ mb: 2 }}
-      >
-        {tags.map((t) => (
-          <MenuItem key={t.id} value={t.id}>
-            <Checkbox checked={(formData.tagIds || []).includes(t.id)} />
-            <ListItemText primary={`#${t.nome}`} />
           </MenuItem>
         ))}
       </TextField>

@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Checkbox, MenuItem, TextField, Typography } from "@mui/material";
+import { Box, Checkbox, ListItemText, MenuItem, TextField, Typography } from "@mui/material";
 import { WorkspacePremium } from "@mui/icons-material";
 import theme from "../../theme/theme";
 import { useCadastrarConteudo } from "../../context/CadastrarConteudoContext";
@@ -10,6 +10,7 @@ const Step1BasicInfo = () => {
     setFormData,
     categorias,
     subcategorias,
+    tags,
     updateField,
   } = useCadastrarConteudo();
   return (
@@ -158,6 +159,34 @@ const Step1BasicInfo = () => {
                 {subcategoria.nome}
               </MenuItem>
             ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Tags"
+            value={formData.tags || []}
+            onChange={(e) => {
+              const value = e.target.value;
+              setFormData((prev) => ({
+                ...prev,
+                tags: typeof value === "string" ? value.split(",") : value,
+              }));
+            }}
+            SelectProps={{
+              multiple: true,
+              renderValue: (selected) => selected?.join(", ") || "",
+            }}
+          >
+            {tags.map((tag) => {
+              const tagNome = String(tag.nome ?? tag.name ?? "").trim();
+              if (!tagNome) return null;
+              return (
+                <MenuItem key={tag.id ?? tag._id ?? tagNome} value={tagNome}>
+                  <Checkbox checked={(formData.tags || []).includes(tagNome)} />
+                  <ListItemText primary={`#${tagNome}`} />
+                </MenuItem>
+              );
+            })}
           </TextField>
         </Box>
         <Box sx={{ mt: 2, display: "flex", justifyContent: "start", alignItems: "center" }}>

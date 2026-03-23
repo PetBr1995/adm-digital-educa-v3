@@ -246,7 +246,7 @@ export default function useConteudoSubmit({
     (formData.instrutorIds || []).forEach((id) =>
       fd.append("instrutorIds[]", String(id))
     );
-    (formData.tagIds || []).forEach((id) => fd.append("tags[]", String(id)));
+    (formData.tags || []).forEach((tag) => fd.append("tags[]", String(tag)));
 
     if (thumbnailDesktop) fd.append("thumbnailDesktop", thumbnailDesktop);
     if (thumbnailMobile) fd.append("thumbnailMobile", thumbnailMobile);
@@ -278,7 +278,7 @@ export default function useConteudoSubmit({
           const updateData = {
             ...conteudoData,
             instrutorIds: (formData.instrutorIds || []).map((id) => String(id)),
-            tags: (formData.tagIds || []).map((id) => String(id)),
+            tags: (formData.tags || []).map((tag) => String(tag)),
           };
           delete updateData.fileSize;
 
