@@ -1,6 +1,6 @@
 import { Box, Button, Dialog, DialogContent, Fade, IconButton, InputAdornment, MenuItem, TextField, Typography, alpha } from "@mui/material";
 import { VisibilityOffOutlined, VisibilityOutlined } from "@mui/icons-material";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Lottie from "lottie-react";
 import successAnimation from "../../assets/success-tick.json";
@@ -9,8 +9,22 @@ import AppSnackbar from "../feedback/AppSnackbar";
 import { getApiErrorMessage } from "../../lib/apiError";
 import theme from "../../theme/theme";
 
-const CadastrarUsuario = ({ onSuccess }) => {
+const toDateTimeLocal = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    const pad = (n) => String(n).padStart(2, "0");
+    const yyyy = date.getFullYear();
+    const mm = pad(date.getMonth() + 1);
+    const dd = pad(date.getDate());
+    const hh = pad(date.getHours());
+    const min = pad(date.getMinutes());
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+};
+
+const CadastrarUsuario = ({ onSuccess, mode = "create", userId = null, initialData = null }) => {
     const navigate = useNavigate();
+    const isEditMode = mode === "edit";
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [successDialogOpen, setSuccessDialogOpen] = useState(false);
@@ -29,6 +43,11 @@ const CadastrarUsuario = ({ onSuccess }) => {
         dataFim: "",
     });
 
+  const successTitle = useMemo(
+    () => (isEditMode ? "Usuário atualizado com sucesso!" : "Usuário cadastrado com sucesso!"),
+    [isEditMode]
+  );
+
   const updateField = (field) => (event) => {
     setFormData((prev) => ({ ...prev, [field]: event.target.value }));
   };
@@ -45,6 +64,21 @@ const CadastrarUsuario = ({ onSuccess }) => {
     if (digits.length <= 7) return `(${ddd}) ${nono} ${parte1}`;
     return `(${ddd}) ${nono} ${parte1}-${parte2}`;
   };
+
+  useEffect(() => {
+    if (!initialData) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      nome: String(initialData?.nome ?? initialData?.name ?? ""),
+      email: String(initialData?.email ?? ""),
+      senha: "",
+      celular: formatPhone(initialData?.celular ?? initialData?.telefone ?? initialData?.phone ?? ""),
+      role: String(initialData?.role ?? initialData?.perfil ?? "USER").toUpperCase(),
+      dataInicio: toDateTimeLocal(initialData?.dataInicio ?? initialData?.inicio ?? initialData?.startDate),
+      dataFim: toDateTimeLocal(initialData?.dataFim ?? initialData?.fim ?? initialData?.endDate),
+    }));
+  }, [initialData]);
 
     const handlePhoneChange = (event) => {
     const masked = formatPhone(event.target.value);
@@ -67,36 +101,81 @@ const CadastrarUsuario = ({ onSuccess }) => {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+        if (isEditMode && !userId) {
+            setErrorAlert({
+                open: true,
+                message: "ID do usuário não informado para edição.",
+            });
+            return;
+        }
+
+        if (isEditMode && (formData.dataInicio || formData.dataFim) && (!formData.dataInicio || !formData.dataFim)) {
+            setErrorAlert({
+                open: true,
+                message: "Para atualizar o período, preencha data de início e data de fim.",
+            });
+            return;
+        }
+
         setLoading(true);
 
         try {
-            const payload = {
+            const isoInicio = toIsoOrNull(formData.dataInicio);
+            const isoFim = toIsoOrNull(formData.dataFim);
+            const basePayload = {
                 nome: formData.nome.trim(),
                 email: formData.email.trim(),
-        senha: formData.senha,
-        celular: formData.celular.replace(/\D/g, ""),
-        role: formData.role,
-        dataInicio: toIsoOrNull(formData.dataInicio),
-        dataFim: toIsoOrNull(formData.dataFim),
+                celular: formData.celular.replace(/\D/g, ""),
             };
+            const payload = isEditMode
+                ? { ...basePayload }
+                : {
+                      ...basePayload,
+                      role: formData.role,
+                      ...(isoInicio ? { dataInicio: isoInicio } : {}),
+                      ...(isoFim ? { dataFim: isoFim } : {}),
+                  };
+            if (formData.senha) payload.senha = formData.senha;
+            console.log(`[CadastrarUsuario] payload ${isEditMode ? "edição" : "cadastro"}:`, payload);
 
-            await api.post("/usuario/admin/create", payload, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
+            if (isEditMode) {
+                await api.put(`/usuario/admin/usuarios/${userId}`, payload, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                });
+
+                if (isoInicio && isoFim) {
+                    const periodoPayload = { dataInicio: isoInicio, dataFim: isoFim };
+                    console.log("[CadastrarUsuario] payload período assinatura:", periodoPayload);
+                    await api.put(`/assinatura/admin/periodo/${userId}`, periodoPayload, {
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem("token")}`,
+                        },
+                    });
+                }
+            } else {
+                await api.post("/usuario/admin/create", payload, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                });
+            }
 
             setSuccessDialogOpen(true);
             if (onSuccess) onSuccess();
-            setFormData({
-                nome: "",
-                email: "",
-                senha: "",
-                celular: "",
-                role: "USER",
-                dataInicio: "",
-                dataFim: "",
-            });
+
+            if (!isEditMode) {
+                setFormData({
+                    nome: "",
+                    email: "",
+                    senha: "",
+                    celular: "",
+                    role: "USER",
+                    dataInicio: "",
+                    dataFim: "",
+                });
+            }
 
             setTimeout(() => {
                 navigate("/usuarios");
@@ -105,17 +184,19 @@ const CadastrarUsuario = ({ onSuccess }) => {
             const apiError = error?.response?.data;
             const statusCode = error?.response?.status ?? apiError?.statusCode;
             const apiMessage = apiError?.message;
-
-            let message = getApiErrorMessage(error, "Não foi possível cadastrar o usuário.");
+            let message = getApiErrorMessage(
+                error,
+                isEditMode ? "Não foi possível atualizar o usuário." : "Não foi possível cadastrar o usuário."
+            );
             if (statusCode === 409) {
                 message = Array.isArray(apiMessage) ? apiMessage[0] : apiMessage || "Já existe um usuário cadastrado com esse celular!";
             }
+            console.log(`Erro ao ${isEditMode ? "atualizar" : "cadastrar"} usuário:`, apiError || error);
 
             setErrorAlert({
                 open: true,
                 message,
             });
-            console.log("Erro ao cadastrar usuário:", apiError || error);
         } finally {
             setLoading(false);
         }
@@ -143,7 +224,7 @@ const CadastrarUsuario = ({ onSuccess }) => {
                     <TextField
                         fullWidth
                         type={showPassword ? "text" : "password"}
-                        placeholder="Senha..."
+                        placeholder={isEditMode ? "Nova senha (opcional)..." : "Senha..."}
                         value={formData.senha}
                         onChange={updateField("senha")}
                         InputProps={{
@@ -164,7 +245,7 @@ const CadastrarUsuario = ({ onSuccess }) => {
                                 </InputAdornment>
                             ),
                         }}
-                        required
+                        required={!isEditMode}
                     />
           <TextField
             fullWidth
@@ -180,6 +261,8 @@ const CadastrarUsuario = ({ onSuccess }) => {
                         label="Role"
                         value={formData.role}
                         onChange={updateField("role")}
+                        disabled={isEditMode}
+                        helperText={isEditMode ? "Role não pode ser alterada nesta tela no backend atual." : ""}
                         required
                     >
                         <MenuItem value="USER">USER</MenuItem>
@@ -194,7 +277,7 @@ const CadastrarUsuario = ({ onSuccess }) => {
                             InputLabelProps={{ shrink: true }}
                             value={formData.dataInicio}
                             onChange={updateField("dataInicio")}
-                            required
+                            required={!isEditMode}
                         />
                         <TextField
                             fullWidth
@@ -203,7 +286,7 @@ const CadastrarUsuario = ({ onSuccess }) => {
                             InputLabelProps={{ shrink: true }}
                             value={formData.dataFim}
                             onChange={updateField("dataFim")}
-                            required
+                            required={!isEditMode}
                         />
                     </Box>
                 </Box>
@@ -223,7 +306,7 @@ const CadastrarUsuario = ({ onSuccess }) => {
                             variant="contained"
                             sx={{ textTransform: "capitalize", color: "#ffffff", fontWeight: 600 }}
                         >
-                            {loading ? "Salvando..." : "Salvar"}
+                            {loading ? "Salvando..." : isEditMode ? "Salvar alterações" : "Salvar"}
                         </Button>
                     </Box>
                 </Box>
@@ -265,7 +348,7 @@ const CadastrarUsuario = ({ onSuccess }) => {
                                     textAlign: "center",
                                 }}
                             >
-                                Usuário cadastrado com sucesso!
+                                {successTitle}
                             </Typography>
                         </Box>
                     </Fade>

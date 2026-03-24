@@ -1,6 +1,11 @@
 import {
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   TableContainer,
   Typography,
   Paper,
@@ -26,6 +31,8 @@ import theme from "../theme/theme";
 import api from "../api/axiosInstance";
 import SearchBarComponent from "../components/contentComponents/SearchBarComponente"; // ✅ igual no Conteudos
 import { useNavigate } from "react-router-dom";
+import AppSnackbar from "../components/feedback/AppSnackbar";
+import { getApiErrorMessage } from "../lib/apiError";
 
 const Instrutores = () => {
   const [allInstrutores, setAllInstrutores] = useState([]); // lista completa
@@ -39,6 +46,14 @@ const Instrutores = () => {
   const [limit] = useState(10);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [menuInstrutor, setMenuInstrutor] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [instrutorToDelete, setInstrutorToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const listarInstrutores = () => {
     setLoading(true);
@@ -113,9 +128,64 @@ const Instrutores = () => {
 
   const handleDeleteInstrutor = () => {
     if (!menuInstrutor) return;
-    // TODO: ligar fluxo de remoção (confirmação + API)
-    console.log("Apagar instrutor:", menuInstrutor);
+    setInstrutorToDelete(menuInstrutor);
+    setDeleteDialogOpen(true);
     handleCloseMenu();
+  };
+
+  const handleCloseDeleteDialog = () => {
+    if (deleting) return;
+    setDeleteDialogOpen(false);
+    setInstrutorToDelete(null);
+  };
+
+  const handleConfirmDeleteInstrutor = async () => {
+    if (!instrutorToDelete) return;
+    const instrutorId = instrutorToDelete.id ?? instrutorToDelete._id;
+    if (!instrutorId) return;
+
+    try {
+      setDeleting(true);
+      const endpoints = [`/instrutor/delete/${instrutorId}`, `/instrutor/${instrutorId}`];
+      let deleted = false;
+      let lastError = null;
+
+      for (const endpoint of endpoints) {
+        try {
+          await api.delete(endpoint, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          });
+          deleted = true;
+          break;
+        } catch (err) {
+          lastError = err;
+        }
+      }
+
+      if (!deleted && lastError) throw lastError;
+
+      setAllInstrutores((prev) =>
+        prev.filter((instrutor) => String(instrutor.id ?? instrutor._id) !== String(instrutorId))
+      );
+      setSnackbar({
+        open: true,
+        message: "Instrutor excluído com sucesso.",
+        severity: "success",
+      });
+    } catch (error) {
+      console.log("Erro ao excluir instrutor:", error?.response?.data || error);
+      setSnackbar({
+        open: true,
+        message: getApiErrorMessage(error, "Não foi possível excluir o instrutor."),
+        severity: "error",
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setInstrutorToDelete(null);
+    }
   };
 
   const isLg = useMediaQuery(theme.breakpoints.up("lg"));
@@ -312,6 +382,44 @@ const Instrutores = () => {
           Apagar
         </MenuItem>
       </Menu>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{
+          sx: {
+            backgroundColor: theme.palette.secondary.light,
+            color: "#fff",
+            border: `1px solid ${theme.palette.divider}`,
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Excluir instrutor</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: "text.secondary" }}>
+            Tem certeza que deseja excluir <strong>{instrutorToDelete?.nome || "este instrutor"}</strong>? Essa ação não pode ser desfeita.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleCloseDeleteDialog} disabled={deleting} variant="outlined" sx={{ color: "#fff" }}>
+            Cancelar
+          </Button>
+          <Button onClick={handleConfirmDeleteInstrutor} disabled={deleting} color="error" variant="contained">
+            {deleting ? "Excluindo..." : "Excluir"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <AppSnackbar
+        open={snackbar.open}
+        message={snackbar.message}
+        severity={snackbar.severity}
+        autoHideDuration={3500}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+      />
 
       {/* Pagination */}
       {!loading && totalFiltrado > 0 && (

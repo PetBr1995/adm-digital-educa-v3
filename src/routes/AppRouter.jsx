@@ -16,6 +16,7 @@ const CadastrarInstrutor = lazy(() => import("../components/CadastrarInstrutor")
 const EditarInstrutor = lazy(() => import("../pages/EditarInstrutor"));
 const Usuarios = lazy(() => import("../pages/Usuarios"));
 const CadastrarUsuario = lazy(() => import("../pages/CadastrarUsuario"));
+const EditarUsuario = lazy(() => import("../pages/EditarUsuario"));
 const Planos = lazy(() => import("../pages/Planos"));
 const CadastrarPlano = lazy(() => import("../pages/CadastrarPlano"));
 const EditarPlano = lazy(() => import("../pages/EditarPlano"));
@@ -66,6 +67,7 @@ export default function AppRouter() {
             <Route path="instrutores/editar/:id" element={<EditarInstrutor />} />
             <Route path="usuarios" element={<Usuarios />} />
             <Route path="cadastrarusuario" element={<CadastrarUsuario />} />
+            <Route path="usuarios/editar/:id" element={<EditarUsuario />} />
             <Route path="planos" element={<Planos />} />
             <Route path="planos/cadastrar" element={<CadastrarPlano />} />
             <Route path="planos/editar/:id" element={<EditarPlano />} />

@@ -25,6 +25,7 @@ import {
   alpha,
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { Add, DeleteOutline, EditOutlined } from "@mui/icons-material";
 import theme from "../../theme/theme";
@@ -52,6 +53,64 @@ const toTimestamp = (value) => {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 };
 
+const extractPeriodo = (obj) => {
+  if (!obj || typeof obj !== "object") return { dataInicio: "", dataFim: "" };
+
+  const getStart = (item) =>
+    item?.dataInicio ??
+    item?.inicio ??
+    item?.startDate ??
+    item?.startsAt ??
+    item?.data_inicio ??
+    item?.inicio_assinatura ??
+    item?.dataInicioAssinatura ??
+    item?.vigenciaInicio ??
+    "";
+
+  const getEnd = (item) =>
+    item?.dataFim ??
+    item?.fim ??
+    item?.endDate ??
+    item?.endsAt ??
+    item?.data_fim ??
+    item?.fim_assinatura ??
+    item?.dataFimAssinatura ??
+    item?.vigenciaFim ??
+    "";
+
+  const directStart = getStart(obj);
+  const directEnd = getEnd(obj);
+  if (directStart || directEnd) return { dataInicio: directStart || "", dataFim: directEnd || "" };
+
+  const candidates = [
+    obj?.assinatura,
+    obj?.assinaturas,
+    obj?.subscription,
+    obj?.subscriptions,
+    obj?.periodo,
+    obj?.periodos,
+    obj?.plano,
+    obj?.planos,
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    if (Array.isArray(candidate)) {
+      for (const item of candidate) {
+        const s = getStart(item);
+        const e = getEnd(item);
+        if (s || e) return { dataInicio: s || "", dataFim: e || "" };
+      }
+      continue;
+    }
+    const s = getStart(candidate);
+    const e = getEnd(candidate);
+    if (s || e) return { dataInicio: s || "", dataFim: e || "" };
+  }
+
+  return { dataInicio: "", dataFim: "" };
+};
+
 const normalizeUsuarios = (data) => {
   const raw =
     data?.data?.usuarios ??
@@ -63,17 +122,23 @@ const normalizeUsuarios = (data) => {
 
   if (!Array.isArray(raw)) return [];
 
-  return raw.map((u, index) => ({
-    id: String(u?.id ?? u?._id ?? index),
-    nome: String(u?.nome ?? u?.name ?? "Sem nome"),
-    email: String(u?.email ?? "-"),
-    role: String(u?.role ?? u?.perfil ?? "-"),
-    celular: String(u?.celular ?? u?.telefone ?? u?.phone ?? "-"),
-    createdAt: u?.createdAt ?? u?.created_at ?? u?.dataCriacao ?? null,
-  }));
+  return raw.map((u, index) => {
+    const periodo = extractPeriodo(u);
+    return {
+      id: String(u?.id ?? u?._id ?? index),
+      nome: String(u?.nome ?? u?.name ?? "Sem nome"),
+      email: String(u?.email ?? "-"),
+      role: String(u?.role ?? u?.perfil ?? "-"),
+      celular: String(u?.celular ?? u?.telefone ?? u?.phone ?? "-"),
+      dataInicio: periodo.dataInicio,
+      dataFim: periodo.dataFim,
+      createdAt: u?.createdAt ?? u?.created_at ?? u?.dataCriacao ?? null,
+    };
+  });
 };
 
 const UsersListTable = ({ onCreateUser }) => {
+  const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.down("lg"));
   const [allUsuarios, setAllUsuarios] = useState([]);
@@ -102,31 +167,14 @@ const UsersListTable = ({ onCreateUser }) => {
     const carregarUsuarios = async () => {
       setLoading(true);
       try {
-        const endpoints = [
-          "/usuario/admin/usuarios",
-          "/usuarios",
-          "/usuarios/list",
-          "/user",
-          "/users",
-        ];
+        const response = await api.get("/usuario/admin/usuarios", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          params: { page: 1, limit: 1000 },
+        });
 
-        let usuarios = [];
-
-        for (const endpoint of endpoints) {
-          try {
-            const response = await api.get(endpoint, {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-              params: { page: 1, limit: 1000 },
-            });
-            console.log(`[UsersListTable] resposta de ${endpoint}:`, response.data);
-            usuarios = normalizeUsuarios(response.data);
-            if (usuarios.length > 0) break;
-          } catch {
-            // tenta o próximo endpoint
-          }
-        }
+        const usuarios = normalizeUsuarios(response.data);
 
         if (mounted) setAllUsuarios(usuarios);
       } catch (error) {
@@ -201,8 +249,12 @@ const UsersListTable = ({ onCreateUser }) => {
 
   const handleEditUsuario = () => {
     if (!menuUsuario) return;
-    // TODO: ligar fluxo de edição de usuário
-    console.log("Editar usuário:", menuUsuario);
+    const usuarioId = menuUsuario.id;
+    if (!usuarioId) {
+      handleCloseMenu();
+      return;
+    }
+    navigate(`/usuarios/editar/${usuarioId}`, { state: { usuario: menuUsuario } });
     handleCloseMenu();
   };
 
