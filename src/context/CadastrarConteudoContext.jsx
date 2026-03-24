@@ -68,6 +68,31 @@ const normalizeTagNames = (items) => {
   return Array.from(new Set(names));
 };
 
+const mapTagValuesToNames = (values, tagsList) => {
+  if (!Array.isArray(values)) return [];
+
+  const idToName = new Map(
+    (Array.isArray(tagsList) ? tagsList : [])
+      .map((tag) => [
+        String(tag?.id ?? tag?._id ?? "").trim(),
+        String(tag?.nome ?? tag?.name ?? "").replace(/^#/, "").trim(),
+      ])
+      .filter(([id, name]) => id && name)
+  );
+
+  return Array.from(
+    new Set(
+      values
+        .map((value) => {
+          const cleaned = String(value ?? "").replace(/^#/, "").trim();
+          if (!cleaned) return "";
+          return idToName.get(cleaned) ?? cleaned;
+        })
+        .filter(Boolean)
+    )
+  );
+};
+
 const normalizeVideo = (video, fallbackId, moduloId = null) => {
   if (!video) return null;
   const videoId = String(
@@ -204,6 +229,21 @@ export const CadastrarConteudoProvider = ({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.categoriaId, subcategorias.length]);
+
+  useEffect(() => {
+    if (!Array.isArray(tags) || tags.length === 0) return;
+
+    setFormData((prev) => {
+      const current = Array.isArray(prev.tags) ? prev.tags : [];
+      if (current.length === 0) return prev;
+
+      const normalized = mapTagValuesToNames(current, tags);
+      const sameLength = normalized.length === current.length;
+      const sameValues = sameLength && normalized.every((value, idx) => value === current[idx]);
+
+      return sameValues ? prev : { ...prev, tags: normalized };
+    });
+  }, [tags, setFormData]);
 
   const step1Valid = useMemo(() => {
     return (

@@ -13,6 +13,29 @@ const Step1BasicInfo = () => {
     tags,
     updateField,
   } = useCadastrarConteudo();
+
+  const tagIdToName = new Map(
+    (tags || [])
+      .map((tag) => [
+        String(tag?.id ?? tag?._id ?? "").trim(),
+        String(tag?.nome ?? tag?.name ?? "").replace(/^#/, "").trim(),
+      ])
+      .filter(([id, name]) => id && name)
+  );
+
+  const selectedTags = Array.isArray(formData.tags)
+    ? formData.tags.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : [];
+
+  const selectedTagNames = Array.from(
+    new Set(
+      selectedTags
+        .map((value) => tagIdToName.get(value) ?? value)
+        .map((value) => String(value).replace(/^#/, "").trim())
+        .filter(Boolean)
+    )
+  );
+
   return (
     <>
       <Box sx={{ p: 2 }}>
@@ -167,22 +190,31 @@ const Step1BasicInfo = () => {
             value={formData.tags || []}
             onChange={(e) => {
               const value = e.target.value;
+              const selected = (typeof value === "string" ? value.split(",") : value || [])
+                .map((item) => {
+                  const cleaned = String(item ?? "").replace(/^#/, "").trim();
+                  if (!cleaned) return "";
+                  return tagIdToName.get(cleaned) ?? cleaned;
+                })
+                .filter(Boolean);
+
               setFormData((prev) => ({
                 ...prev,
-                tags: typeof value === "string" ? value.split(",") : value,
+                tags: Array.from(new Set(selected)),
               }));
             }}
             SelectProps={{
               multiple: true,
-              renderValue: (selected) => selected?.join(", ") || "",
+              renderValue: () => selectedTagNames.join(", "),
             }}
           >
             {tags.map((tag) => {
               const tagNome = String(tag.nome ?? tag.name ?? "").trim();
+              const tagId = String(tag.id ?? tag._id ?? "").trim();
               if (!tagNome) return null;
               return (
                 <MenuItem key={tag.id ?? tag._id ?? tagNome} value={tagNome}>
-                  <Checkbox checked={(formData.tags || []).includes(tagNome)} />
+                  <Checkbox checked={selectedTagNames.includes(tagNome) || selectedTags.includes(tagId)} />
                   <ListItemText primary={`#${tagNome}`} />
                 </MenuItem>
               );
