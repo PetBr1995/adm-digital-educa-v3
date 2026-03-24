@@ -27,6 +27,7 @@ import { setUserProperties, trackEvent } from "../../lib/analytics";
 // Lottie
 import Lottie from "lottie-react";
 import successAnimation from "../../assets/success-tick.json";
+import loginWaveBgAnimation from "../../assets/login-wave-bg.json";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -91,7 +92,7 @@ const Login = () => {
       setTimeout(() => {
         navigate("/dashboard", { replace: true });
       }, 1600);
-    } catch (error) {
+    } catch {
       trackEvent("login_failed", { method: "email_password" });
       Swal.fire({
         icon: "error",
@@ -117,6 +118,34 @@ const Login = () => {
         background: `radial-gradient(circle at top, ${theme.palette.secondary.light}, ${theme.palette.secondary.dark})`,
       }}
     >
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          opacity: 0.85,
+        }}
+      >
+        <Lottie
+          animationData={loginWaveBgAnimation}
+          loop
+          autoplay
+          style={{ width: "100%", height: "100%" }}
+        />
+      </Box>
+
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          background:
+            "linear-gradient(180deg, rgba(4,15,32,0.28) 0%, rgba(4,15,32,0.15) 45%, rgba(4,15,32,0.48) 100%)",
+        }}
+      />
+
       <Fade in timeout={800}>
         <Box
           component="form"

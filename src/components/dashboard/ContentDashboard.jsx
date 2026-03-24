@@ -56,8 +56,7 @@ const ContentDashboard = () => {
                     gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "1fr 1fr 1fr 1fr" },
                     gap: 2,
                     width: "100%",
-                    mt: 2,
-                    maxWidth: "1200px"
+                    mt: 2
                 }}
             >
                 {Array.from({ length: 4 }).map((_, idx) => (
@@ -94,8 +93,7 @@ const ContentDashboard = () => {
                 gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "1fr 1fr 1fr 1fr" },
                 gap: 2,
                 width: "100%",
-                mt: 2,
-                maxWidth: "1200px"
+                mt: 2
             }}
         >
             {cards.map((item) => {

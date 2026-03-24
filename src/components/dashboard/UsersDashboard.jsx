@@ -122,7 +122,7 @@ const UsersDashboard = () => {
 
   if (loading) {
     return (
-      <Box sx={{ maxWidth: "1200px" }}>
+      <Box sx={{ width: "100%" }}>
         <Grid
           container
           spacing={2}
@@ -202,7 +202,7 @@ const UsersDashboard = () => {
   }
 
   return (
-    <Box sx={{maxWidth:"1200px"}}>
+    <Box sx={{ width: "100%" }}>
       {/* Cards atuais */}
       <Grid
         container
@@ -273,8 +273,8 @@ const UsersDashboard = () => {
               borderBottom: `2px solid ${theme.palette.primary.light}`,
             }}
           >
-            <Typography sx={{ opacity: 0.8, fontSize: 13 }}>{k.label}</Typography>
-            <Typography sx={{ mt: 0.5, fontSize: 22, fontWeight: 500 }}>
+            <Typography sx={{ opacity: 0.8, fontSize: 13, color: "#fff" }}>{k.label}</Typography>
+            <Typography sx={{ mt: 0.5, fontSize: 22, fontWeight: 500, color: "#fff" }}>
               {k.value}
             </Typography>
           </Paper>
