@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import * as tus from "tus-js-client";
+import { TUS_CHUNK_SIZE, TUS_RETRY_DELAYS } from "../utils/tusUploadConfig";
 
 export default function useConteudoSubmit({
   api,
@@ -416,6 +417,8 @@ export default function useConteudoSubmit({
           filename: videoFile.name,
           filetype: videoFile.type,
         },
+        chunkSize: TUS_CHUNK_SIZE,
+        retryDelays: TUS_RETRY_DELAYS,
         onError: (err) => {
           console.error("Erro no upload:", err);
           setStatus("Erro ao enviar vídeo.");

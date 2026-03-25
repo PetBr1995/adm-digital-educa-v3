@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import * as tus from "tus-js-client";
+import { TUS_CHUNK_SIZE, TUS_RETRY_DELAYS } from "../utils/tusUploadConfig";
 
 /**
  * Hook para:
@@ -51,7 +52,8 @@ export default function useVimeoVideoUpload(api) {
         const upload = new tus.Upload(file, {
           uploadUrl: vimeoUploadLink,
           metadata: { filename: file.name, filetype: file.type },
-          chunkSize: 100 * 1024 * 1024,
+          chunkSize: TUS_CHUNK_SIZE,
+          retryDelays: TUS_RETRY_DELAYS,
           onError: (err) => reject(err),
           onProgress: (bytesUploaded, bytesTotal) => {
             const percent = Math.round((bytesUploaded / bytesTotal) * 100);
