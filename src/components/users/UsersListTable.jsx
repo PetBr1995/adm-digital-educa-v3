@@ -53,6 +53,24 @@ const toTimestamp = (value) => {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 };
 
+const DAYS_TO_EXPIRE_SOON = 7;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const getExpirationStatus = (value) => {
+  if (!value) return "sem_data";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "sem_data";
+
+  const now = new Date();
+  const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const endStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const diffDays = Math.floor((endStart - nowStart) / DAY_MS);
+
+  if (diffDays < 0) return "vencido";
+  if (diffDays <= DAYS_TO_EXPIRE_SOON) return "proximo_vencimento";
+  return "ativo";
+};
+
 const extractPeriodo = (obj) => {
   if (!obj || typeof obj !== "object") return { dataInicio: "", dataFim: "" };
 
@@ -145,6 +163,7 @@ const UsersListTable = ({ onCreateUser }) => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState("recentes");
+  const [expirationFilter, setExpirationFilter] = useState("todos");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
@@ -194,14 +213,13 @@ const UsersListTable = ({ onCreateUser }) => {
 
   const usuariosFiltrados = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return allUsuarios;
-
-    return allUsuarios.filter((u) => {
+    const bySearch = allUsuarios.filter((u) => {
       const nome = (u.nome || "").toLowerCase();
       const email = (u.email || "").toLowerCase();
       const role = (u.role || "").toLowerCase();
       const celular = (u.celular || "").toLowerCase();
       const createdAt = formatCreatedAt(u.createdAt).toLowerCase();
+      if (!term) return true;
       return (
         nome.includes(term) ||
         email.includes(term) ||
@@ -210,7 +228,17 @@ const UsersListTable = ({ onCreateUser }) => {
         createdAt.includes(term)
       );
     });
-  }, [allUsuarios, search]);
+
+    if (expirationFilter === "todos") return bySearch;
+
+    return bySearch.filter((u) => {
+      const status = getExpirationStatus(u.dataFim);
+      if (expirationFilter === "proximo_vencimento") return status === "proximo_vencimento";
+      if (expirationFilter === "vencido") return status === "vencido";
+      if (expirationFilter === "ativo") return status === "ativo";
+      return true;
+    });
+  }, [allUsuarios, search, expirationFilter]);
 
   const usuariosOrdenados = useMemo(() => {
     const lista = [...usuariosFiltrados];
@@ -325,7 +353,7 @@ const UsersListTable = ({ onCreateUser }) => {
           gridTemplateColumns: {
             xs: "1fr",
             md: "1fr 1fr",
-            lg: "1fr 320px 200px auto",
+            lg: "1fr 320px 220px 200px auto",
           },
         }}
       >
@@ -365,6 +393,25 @@ const UsersListTable = ({ onCreateUser }) => {
               }}
             />
           </Box>
+        </Box>
+
+        <Box sx={{ width: "100%", gridColumn: { xs: "auto", md: "1 / -1", lg: "auto" } }}>
+          <TextField
+            select
+            size="small"
+            fullWidth
+            label="Assinatura"
+            value={expirationFilter}
+            onChange={(e) => {
+              setExpirationFilter(e.target.value);
+              setPage(1);
+            }}
+          >
+            <MenuItem value="todos">Todos</MenuItem>
+            <MenuItem value="proximo_vencimento">Próximos de vencer (7 dias)</MenuItem>
+            <MenuItem value="ativo">Ativos</MenuItem>
+            <MenuItem value="vencido">Vencidos</MenuItem>
+          </TextField>
         </Box>
 
         <Box sx={{ width: "100%", gridColumn: { xs: "auto", md: "1 / -1", lg: "auto" } }}>
